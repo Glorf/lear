@@ -1,4 +1,5 @@
 #include "connection.h"
+#include "config.h"
 
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -61,7 +62,7 @@ int bind_server_socket(unsigned short port, s_tcp_server *srv_out) {
         return -1;
     }
 
-    err = listen(srv_out->srv_socket, QUEUE_SIZE);
+    err = listen(srv_out->srv_socket, read_config_int("queueSize", "5"));
     if(err < 0) {
         perror("Error while listening on port");
         return -1;

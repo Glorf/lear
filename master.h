@@ -5,6 +5,8 @@
 #ifndef PUTHTTPD_MASTER_H
 #define PUTHTTPD_MASTER_H
 
+#define MAX_NUM_WORKERS 5
+
 int run_master();
 
 

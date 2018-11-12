@@ -5,15 +5,13 @@
 #ifndef PUTHTTPD_CONNECTION_H
 #define PUTHTTPD_CONNECTION_H
 
-#define QUEUE_SIZE 5
-
 enum server_status {
     UNINITIALIZED,
     FAILURE,
     RUNNING,
     DOWN
 };
-typedef enum server_status e_server_status
+typedef enum server_status e_server_status;
 
 struct tcp_server {
     int srv_socket;

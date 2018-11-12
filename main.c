@@ -1,6 +1,10 @@
+#include "master.h"
+#include "config.h"
+
 #include <stdio.h>
 
 int main() {
-    printf("Hello, World!\n");
-    return 0;
+    printf("Welcome to puthttpd!\n");
+    initialize_config("../httpd.yaml");
+    run_master();
 }

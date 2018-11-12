@@ -3,17 +3,16 @@
 //
 
 #include "master.h"
+#include "config.h"
 
 struct worker {
     int pid;
 
 };
-typedef struct worker worker;
+typedef struct worker s_worker;
 
+s_worker workers[MAX_NUM_WORKERS];
 
-/**
- * @return exit status code for application
- */
 int run_master() {
 
 }
