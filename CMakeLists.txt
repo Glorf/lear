@@ -4,5 +4,5 @@ project(puthttpd C)
 set(CMAKE_C_STANDARD 11)
 
 add_compile_options(-Wall)
-add_executable(puthttpd main.c master.c master.h worker.c worker.h thread.c thread.h connection.c connection.h config.c config.h)
+add_executable(puthttpd main.c master.c master.h worker.c worker.h thread.c thread.h connection.c connection.h config.c config.h logger.c logger.h)
 target_link_libraries(puthttpd yaml)

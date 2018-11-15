@@ -5,7 +5,7 @@
 #ifndef PUTHTTPD_CONFIG_H
 #define PUTHTTPD_CONFIG_H
 
-int initialize_config(char path[]);
+int init_config(char path[]);
 char* read_config_string(char key[], char defaults[]);
 int read_config_int(char key[], char defaults[]);
 

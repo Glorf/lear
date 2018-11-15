@@ -14,7 +14,7 @@ typedef struct map s_map;
 s_map config[10];
 int config_num;
 
-int initialize_config(char path[]) {
+int init_config(char path[]) {
     yaml_parser_t parser;
     yaml_event_t event;
     FILE *file = fopen(path, "rb");

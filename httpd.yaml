@@ -1,2 +1,4 @@
 queueSize: 5
 maxNumWorkers: 5
+logPath: "./log"
+logLevel: 0
