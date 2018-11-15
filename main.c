@@ -5,10 +5,10 @@
 #include <stdio.h>
 
 int main() {
-    init_config("../httpd.yaml");
+    run_master();
+    init_config("../httpd.yaml"); //TODO: load all below concurrently
     init_logger(read_config_string("logPath", "stdout"), read_config_int("logLevel", "0"));
     message_log("Welcome to puthttpd!", DEBUG);
-    run_master();
 
     shutdown_logger();
 }
