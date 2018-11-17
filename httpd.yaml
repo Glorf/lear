@@ -1,4 +1,5 @@
-queueSize: 5
+queueSize: 64
 maxNumWorkers: 5
 logPath: "./log"
 logLevel: 0
+listenPort: 9000

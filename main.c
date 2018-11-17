@@ -5,10 +5,11 @@
 #include <stdio.h>
 
 int main() {
-    run_master();
-    init_config("../httpd.yaml"); //TODO: load all below concurrently
+    init_config("../httpd.yaml"); //TODO: process log with pipes to master process to omit processing slowdowns
     init_logger(read_config_string("logPath", "stdout"), read_config_int("logLevel", "0"));
     message_log("Welcome to puthttpd!", DEBUG);
+    run_master();
+
 
     shutdown_logger();
 }

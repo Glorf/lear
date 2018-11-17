@@ -12,6 +12,7 @@ const char *str_levels[4] = {"DEBUG", "INFO", "WARN", "ERR"};
 int init_logger(char logpath[], enum LogLevel logVerbosity) {
     runVerbosity = logVerbosity;
     logfile = fopen(logpath, "w");
+    setlinebuf(logfile);
     if(logfile == NULL) {
         perror("Failed to initialize log file");
         return -1;
@@ -25,6 +26,7 @@ int shutdown_logger() {
 
 void message_log(char message[], enum LogLevel level) {
     if(level >= runVerbosity) {
+        //POSIX claims fprintf is thread safe, added no mutex though
         if(level < ERR) fprintf(logfile, "[%s] %s\n", str_levels[level], message);
         else fprintf(logfile, "[%s] %s: %s\n", str_levels[level], message, strerror(errno));
     }

@@ -6,28 +6,112 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/epoll.h>
+#include <fcntl.h>
+#include <errno.h>
 
-int accept_client_connection(s_tcp_server *srv_in, s_tcp_client *cli_out) {
+int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
     if(srv_in->status != RUNNING) {
         message_log("Failed to assign connection to server in non-running state", ERR);
         return -1;
     }
-    cli_out->cli_socket = accept(srv_in->srv_socket, NULL, NULL);
-    if(cli_out->cli_socket < 0) {
-        message_log("Failed to initialize connection to new client", ERR);
-        srv_in->status = FAILURE;
+    int cli_socket = accept(srv_in->srv_socket, NULL, NULL);
+    if(cli_socket < 0) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
+            message_log("Failed to initialize connection to any new client", INFO);
+            return -1;
+        }
+        else {
+            message_log("Failed to accept incoming connection", ERR);
+            return -1;
+        }
+    }
+
+    if(make_socket_nonblocking(cli_socket) < 0) {
+        message_log("Failed to make client connection nonblocking", ERR);
         return -1;
     }
-    cli_out->conn_srv = srv_in;
+
+    struct epoll_event event;
+    event.events = EPOLLIN | EPOLLET;
+    event.data.fd = cli_socket;
+
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cli_socket, &event) < 0) {
+        message_log("Epoll error adding accepted connection", ERR);
+        return -1;
+    }
+    message_log("New connection processed.\n", DEBUG);
 
     return 0;
 }
 
-int close_client_connection(s_tcp_client *cli_in) {
-    int res = close(cli_in->cli_socket);
+int read_client_connection(int cli_socket) {
+    ssize_t count;
+    char buf[512];
+
+    count = read(cli_socket, buf, sizeof buf);
+    if (count == -1)
+    {
+        if (errno != EAGAIN)
+        {
+            message_log("Error while reading from client", WARN);
+            close(cli_socket);
+            return -1;
+        }
+
+        return -1;
+    }
+    else if (count == 0)
+    {
+        message_log("Connection closed by remote host", INFO);
+        close(cli_socket);
+        return -1;
+    }
+
+    message_log(buf, INFO);
+
+    /**
+     * TODO: process HTML here
+     */
+
+    char reply[] = {'a', 'c', 'k'};
+
+    /* Write the reply to connection */
+    if(write(cli_socket, reply, sizeof(reply)) == -1)
+    {
+        message_log("Error while writing to client", WARN);
+        return -1;
+    }
+
+    return 0;
+}
+
+int close_client_connection(int cli_socket) {
+    int res = close(cli_socket);
     if(res < 0) {
         message_log("Failed to close connection from to client", ERR);
-        cli_in->conn_srv->status = FAILURE;
+        return -1;
+    }
+
+    return 0;
+}
+
+void create_server_struct(s_tcp_server *srv_out) {
+    srv_out->status = UNINITIALIZED;
+    srv_out->srv_socket = -1;
+}
+
+int make_socket_nonblocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+        message_log("Failed to get socket flags", ERR);
+        return -1;
+    }
+
+    flags |= O_NONBLOCK;
+    int s = fcntl(fd, F_SETFL, flags);
+    if (s == -1) {
+        message_log("Failed to set socket flags", ERR);
         return -1;
     }
 
@@ -35,18 +119,20 @@ int close_client_connection(s_tcp_client *cli_in) {
 }
 
 int bind_server_socket(unsigned short port, s_tcp_server *srv_out) {
-    srv_out->status = UNINITIALIZED;
-
-    //Bind socket
+    //Set socket
     srv_out->srv_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(srv_out->srv_socket < 0) {
         message_log("Failed to initialize server socket", ERR);
         return -1;
     }
 
-    //Set socket properties
-    char opt = 1;
-    setsockopt(srv_out->srv_socket, SOL_SOCKET, SO_REUSEADDR, &opt,  sizeof(opt));
+    //Set socket properties - use new linux 3.9 API to distribute TCP connections
+    //https://lwn.net/Articles/542629/
+    int opt = 1;
+    if(setsockopt(srv_out->srv_socket, SOL_SOCKET, SO_REUSEPORT, (const char *)&opt,  sizeof(opt)) < 0) {
+        message_log("Failed to set sockopt!", ERR);
+        return -1;
+    }
 
     struct sockaddr_in server_address;
     memset(&server_address, 0, sizeof(struct sockaddr));
@@ -55,6 +141,7 @@ int bind_server_socket(unsigned short port, s_tcp_server *srv_out) {
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
     server_address.sin_port = htons(port);
 
+    //Bind socket
     int err;
     err = bind(srv_out->srv_socket, (struct sockaddr*)&server_address, sizeof(struct sockaddr));
     if(err < 0) {
@@ -62,6 +149,9 @@ int bind_server_socket(unsigned short port, s_tcp_server *srv_out) {
         return -1;
     }
 
+    make_socket_nonblocking(srv_out->srv_socket);
+
+    //Listen on non-blocking socket
     err = listen(srv_out->srv_socket, read_config_int("queueSize", "5"));
     if(err < 0) {
         message_log("Error while listening on port", ERR);

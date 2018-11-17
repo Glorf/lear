@@ -25,11 +25,16 @@ int run_master() {
         message_log("Created new worker", DEBUG);
     }
 
+    //Shutdown master on any interrupt signal
     sigset_t sigset;
     sigemptyset(&sigset);
     sigaddset(&sigset, SIGTERM);
     sigaddset(&sigset, SIGINT);
     sigaddset(&sigset, SIGKILL);
+
+    /**
+     * TODO: make any specific master loop here
+     */
 
     //Wait for shutdown signal
     int result;
