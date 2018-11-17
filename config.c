@@ -38,7 +38,6 @@ int init_config(char path[]) {
             yaml_event_delete(&event);
             yaml_parser_parse(&parser, &event);
             strcpy(config[config_num].value, (char*)(event.data.scalar.value));
-            printf("%s: %s\n", config[config_num].key, config[config_num].value);
             config_num++;
         }
     } while(event.type != YAML_STREAM_END_EVENT);
