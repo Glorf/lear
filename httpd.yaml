@@ -1,5 +1,10 @@
+logging:
+  path: "./log"
+  level: 0
 queueSize: 64
 maxNumWorkers: 5
-logPath: "./log"
-logLevel: 0
 listenPort: 9000
+maxRequestSize: 8192
+host:
+  name: "127.0.0.1"
+  webDir: ~/Projekty/puthttpd/web

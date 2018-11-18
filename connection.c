@@ -47,7 +47,7 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
 
 int read_client_connection(int cli_socket) {
     ssize_t count;
-    char buf[512];
+    char buf[read_config_int("maxRequestSize", "8192")];
 
     count = read(cli_socket, buf, sizeof buf);
     if (count == -1)
@@ -73,6 +73,7 @@ int read_client_connection(int cli_socket) {
     /**
      * TODO: process HTML here
      */
+
 
     char reply[] = {'a', 'c', 'k'};
 

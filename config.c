@@ -28,17 +28,48 @@ int init_config(char path[]) {
     yaml_parser_set_input_file(&parser, file);
 
     config_num = 0;
+
+    typedef enum {KEY, VALUE} yaml_state;
+    yaml_state state = KEY;
+    char alias[64] = {'\0'};
+    char key[64] = {'\0'};
+
     do {
         if(!yaml_parser_parse(&parser, &event)) {
             perror("Error while parsing YAML");
             break;
         }
-        if(event.type == YAML_SCALAR_EVENT) {
-            strcpy(config[config_num].key, (char*)(event.data.scalar.value));
-            yaml_event_delete(&event);
-            yaml_parser_parse(&parser, &event);
-            strcpy(config[config_num].value, (char*)(event.data.scalar.value));
-            config_num++;
+        switch(event.type) {
+            case YAML_STREAM_START_EVENT:
+            case YAML_DOCUMENT_START_EVENT:
+            case YAML_DOCUMENT_END_EVENT:
+            case YAML_STREAM_END_EVENT:
+            case YAML_NO_EVENT:
+                continue;
+            case YAML_SCALAR_EVENT:
+                if (state == KEY) {
+                    strcpy(key, (char *) (event.data.scalar.value));
+                    state = VALUE;
+                } else if (state == VALUE) {
+                    strcpy(config[config_num].key, alias);
+                    strcat(config[config_num].key, key);
+                    strcpy(config[config_num].value, (char *) (event.data.scalar.value));
+                    state = KEY;
+                    printf("%s: %s\n", config[config_num].key, config[config_num].value);
+                    config_num++;
+                }
+                break;
+            case YAML_MAPPING_START_EVENT:
+                if(state == VALUE) {
+                    strcpy(alias, key);
+                    strcat(alias, ".");
+                    state = KEY;
+                }
+                break;
+            case YAML_MAPPING_END_EVENT:
+                alias[0] = '\0';
+                //TODO: add deeper indentations
+                break;
         }
     } while(event.type != YAML_STREAM_END_EVENT);
     yaml_event_delete(&event);
