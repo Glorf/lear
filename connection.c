@@ -1,6 +1,7 @@
 #include "connection.h"
 #include "config.h"
 #include "logger.h"
+#include "http.h"
 
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -9,6 +10,7 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 
 int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
     if(srv_in->status != RUNNING) {
@@ -40,45 +42,85 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
         message_log("Epoll error adding accepted connection", ERR);
         return -1;
     }
-    message_log("New connection processed.\n", DEBUG);
+    message_log("New connection processed.", DEBUG);
 
     return 0;
 }
 
 int read_client_connection(int cli_socket) {
-    ssize_t count;
-    char buf[read_config_int("maxRequestSize", "8192")];
+    message_log("Request processing started", INFO);
+    s_http_request request;
 
-    count = read(cli_socket, buf, sizeof buf);
-    if (count == -1)
-    {
-        if (errno != EAGAIN)
-        {
-            message_log("Error while reading from client", WARN);
-            close(cli_socket);
+    time_t start = time(NULL);
+
+    char line[read_config_int("maxRequestSize", "8192")];
+    int linesize = 0;
+    for(int i = 0; i < read_config_int("maxRequestSize", "8192");) {
+        ssize_t count;
+        char buf;
+
+        count = read(cli_socket, &buf, 1);
+        if (count == -1) {
+            if (errno != EAGAIN) {
+                message_log("Error while reading from client", WARN);
+                close(cli_socket);
+                return -1;
+            }
+
             return -1;
+        } else if (count == 0) {
+            if(time(NULL)-start>5) { //Wait 5 seconds for potential next request or next part of current request
+                message_log("Request timeout", INFO);
+                close(cli_socket);
+                break;
+            }
+            else
+                continue;
         }
 
-        return -1;
+        if(linesize > 0 && buf == 10 && line[linesize-1] == 13) { //CRLF
+            if(linesize == 1) { //End of HTTP request
+                message_log("Request finished", DEBUG);
+                break;
+            }
+            if(parse_request_line(line, linesize-1, &(request)) == -1) { //Parse the finished request line (minus clrf)
+                message_log("Invalid request or unknown request parameter", WARN);
+            }
+            linesize = 0;
+        }
+        else {
+            line[linesize] = buf;
+            linesize++;
+        }
+        i++;
     }
-    else if (count == 0)
-    {
-        message_log("Connection closed by remote host", INFO);
-        close(cli_socket);
-        return -1;
+
+    s_http_response response;
+    if(process_http_request(&request, &response) == -1) { //Main request processing thread
+        message_log("Failed to produce response", ERR);
+        /*
+         * TODO: Should return 500
+         */
     }
 
-    message_log(buf, INFO);
 
-    /**
-     * TODO: process HTML here
-     */
-
-
-    char reply[] = {'a', 'c', 'k'};
+    char resp[read_config_int("maxResponseSize", "8192")];
+    int respSize;
+    if(generate_bare_response(&response, resp, &respSize) == -1) {
+        message_log("Failed to serialize server response", ERR);
+        /*
+         * TODO: Should return 500
+         */
+    }
+    if(respSize > read_config_int("maxResponseSize", "8192")) {
+        message_log("Requested file is too big", ERR);
+        /*
+         * TODO: Should return 500
+         */
+    }
 
     /* Write the reply to connection */
-    if(write(cli_socket, reply, sizeof(reply)) == -1)
+    if(write(cli_socket, resp, respSize) == -1)
     {
         message_log("Error while writing to client", WARN);
         return -1;

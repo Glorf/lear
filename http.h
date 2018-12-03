@@ -13,6 +13,12 @@ typedef struct {
 
 } s_http_request;
 
-void parse_request(char *bareRequest, s_http_request *request);
+typedef struct  {
+
+} s_http_response;
+
+int parse_request_line(char *bareLine, int lineSize, s_http_request *request);
+int process_http_request(s_http_request *request, s_http_response *response);
+int generate_bare_response(s_http_response *response, char *bareResponse, int *responseSize);
 
 #endif //PUTHTTPD_HTTP_H

@@ -5,6 +5,7 @@ queueSize: 64
 maxNumWorkers: 5
 listenPort: 9000
 maxRequestSize: 8192
+maxResponseSize: 8192
 host:
   name: "127.0.0.1"
   webDir: ~/Projekty/puthttpd/web

@@ -72,7 +72,7 @@ int create_worker() {
                 while(accept_client_connection(&server, epoll_fd) != -1);
             }
             else { //there is incoming data from one of connected clients
-                while(read_client_connection(event_queue[i].data.fd) != -1);
+                read_client_connection(event_queue[i].data.fd);
             }
         }
     }

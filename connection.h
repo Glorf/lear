@@ -17,6 +17,7 @@ typedef struct {
     e_server_status status;
 } s_tcp_server;
 
+
 int accept_client_connection(s_tcp_server *srv_in, int epoll_fd);
 int read_client_connection(int cli_socket);
 int bind_server_socket(unsigned short port, s_tcp_server *srv_out);
