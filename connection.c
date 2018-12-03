@@ -51,6 +51,7 @@ int read_client_connection(int cli_socket) {
     message_log("Request processing started", INFO);
     s_http_request request;
 
+    int timeout = read_config_int("requestTimeout", "5");
     time_t start = time(NULL);
 
     char line[read_config_int("maxRequestSize", "8192")];
@@ -69,10 +70,10 @@ int read_client_connection(int cli_socket) {
 
             return -1;
         } else if (count == 0) {
-            if(time(NULL)-start>5) { //Wait 5 seconds for potential next request or next part of current request
+            if(time(NULL)-start>timeout) { //Wait 5 seconds for potential next request or next part of current request
                 message_log("Request timeout", INFO);
                 close(cli_socket);
-                break;
+                return -1;
             }
             else
                 continue;
