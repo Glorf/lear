@@ -50,6 +50,7 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
 int read_client_connection(int cli_socket) {
     message_log("Request processing started", INFO);
     s_http_request request;
+    request.method = UNKNOWN;
 
     int timeout = read_config_int("requestTimeout", "5");
     time_t start = time(NULL);
@@ -70,7 +71,7 @@ int read_client_connection(int cli_socket) {
 
             return -1;
         } else if (count == 0) {
-            if(time(NULL)-start>timeout) { //Wait 5 seconds for potential next request or next part of current request
+            if(time(NULL)-start>timeout) { //Wait n seconds for potential next request or next part of current request
                 message_log("Request timeout", INFO);
                 close(cli_socket);
                 return -1;
@@ -105,14 +106,15 @@ int read_client_connection(int cli_socket) {
     }
 
 
-    char resp[read_config_int("maxResponseSize", "8192")];
-    int respSize;
-    if(generate_bare_response(&response, resp, &respSize) == -1) {
+    char *resp = malloc((size_t)read_config_int("maxResponseSize", "8192"));
+    size_t respSize = generate_bare_response(&response, resp);
+    if(respSize == -1) {
         message_log("Failed to serialize server response", ERR);
         /*
          * TODO: Should return 500
          */
     }
+
     if(respSize > read_config_int("maxResponseSize", "8192")) {
         message_log("Requested file is too big", ERR);
         /*
@@ -126,6 +128,8 @@ int read_client_connection(int cli_socket) {
         message_log("Error while writing to client", WARN);
         return -1;
     }
+
+    close_client_connection(cli_socket); //TODO: think how to omit reconnection for each request
 
     return 0;
 }
