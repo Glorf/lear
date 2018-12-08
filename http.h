@@ -12,7 +12,13 @@ typedef enum {
 
 typedef enum {
     OK = 200,
+    BAD_REQUEST = 400,
     NOT_FOUND = 404,
+    REQUEST_TIMEOUT = 408,
+    URI_TOO_LONG = 414,
+    INTERNAL_ERROR = 500,
+    NOT_IMPLEMENTED = 501,
+    HTTP_VERSION_NOT_SUPPORTED = 505
 } e_http_status;
 
 typedef struct {

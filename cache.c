@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 int read_file(char *filename, char *filecontent) {
     FILE *fp = fopen(filename, "r");
@@ -23,4 +24,11 @@ int read_file(char *filename, char *filecontent) {
     fclose(fp);
 
     return len;
+}
+
+int is_directory(const char *path) {
+    struct stat statbuf;
+    if (stat(path, &statbuf) != 0)
+        return 0;
+    return S_ISDIR(statbuf.st_mode);
 }
