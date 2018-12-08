@@ -10,6 +10,11 @@ typedef enum {
     UNKNOWN
 } e_http_methods;
 
+typedef enum {
+    OK = 200,
+    NOT_FOUND = 404,
+} e_http_status;
+
 typedef struct {
     e_http_methods method;
     char hostname[128];
@@ -18,7 +23,9 @@ typedef struct {
 } s_http_request;
 
 typedef struct  {
-
+    e_http_status status;
+    size_t body_length;
+    char body[8192];
 } s_http_response;
 
 int parse_request_line(char *bareLine, int lineSize, s_http_request *request);

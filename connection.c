@@ -129,8 +129,6 @@ int read_client_connection(int cli_socket) {
         return -1;
     }
 
-    close_client_connection(cli_socket); //TODO: think how to omit reconnection for each request
-
     return 0;
 }
 
