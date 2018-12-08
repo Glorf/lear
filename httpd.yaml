@@ -4,8 +4,8 @@ logging:
 queueSize: 64
 maxNumWorkers: 5
 listenPort: 9000
-maxRequestSize: 8192
-maxResponseSize: 8192
+maxRequestSize: 819200
+maxResponseSize: 819200
 requestTimeout: 5
 host:
   name: "127.0.0.1"

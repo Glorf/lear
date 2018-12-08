@@ -1,29 +1,34 @@
+#include "cache.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 
-int read_file(char *filename, char *filecontent) {
+s_string read_file(char *filename) {
+    s_string filecontent;
+    filecontent.length = 0;
+    filecontent.position = NULL;
+
     FILE *fp = fopen(filename, "r");
 
-    int len = 0;
-
     if(fp == NULL)
-        return -1;
+        return filecontent;
 
     if (fseek(fp, 0L, SEEK_END) == 0) {
-        long bufsize = ftell(fp);
+        filecontent.length = (size_t)ftell(fp);
 
-        if (fseek(fp, 0L, SEEK_SET) != 0) return  -1;
+        if (fseek(fp, 0L, SEEK_SET) != 0) return  filecontent;
 
-        len = (int)fread(filecontent, sizeof(char), (size_t)bufsize, fp);
-        if ( ferror( fp ) != 0 ) return -1;
+        filecontent.position = malloc((size_t)filecontent.length+1);
+        size_t len = fread(filecontent.position, sizeof(char), (size_t)filecontent.length, fp);
+        if ( ferror( fp ) != 0 ) return filecontent;
         else {
-            filecontent[len++] = '\0';
+            filecontent.position[len++] = '\0';
         }
     }
     fclose(fp);
 
-    return len;
+    return filecontent;
 }
 
 int is_directory(const char *path) {

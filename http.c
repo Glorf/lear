@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
     int offset = 0;
@@ -62,14 +63,19 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 
     const char *webdir = read_config_string("host.webDir", "/var/www");
 
+
     if(request->method == GET) {
         //TODO: handle multiple hostnames
         char resourceDir[256];
+
         sprintf(resourceDir, "%s%s", webdir, request->resource);
 
         if(is_directory(resourceDir)) { //if it's directory, look for index.html inside
             strcat(resourceDir, "/index.html");
         }
+
+        message_log(resourceDir, INFO);
+
 
         if(access(resourceDir , F_OK ) == -1) { //File not exist
             sprintf(resourceDir, "%s/%s", webdir, read_config_string("host.notFound", "404.html"));
@@ -80,10 +86,16 @@ int process_http_request(s_http_request *request, s_http_response *response) {
             response->status = OK;
         }
 
-        if(read_file(resourceDir, response->body) == -1) {
+
+
+        s_string page = read_file(resourceDir);
+        response->body = page.position;
+        response->body_length = (size_t)page.length;
+
+        if(response->body_length == -1) {
             message_log(resourceDir, WARN);
-            message_log("Error while reading file", ERR); //TODO: return 5xx
-            response->status =
+            message_log("Error while reading file", ERR);
+            response->status = INTERNAL_ERROR;
         }
     }
 
@@ -91,24 +103,44 @@ int process_http_request(s_http_request *request, s_http_response *response) {
      * TODO: handle other requests
      */
 
-
-    response->body_length = strlen(response->body);
+    if(response->body_length < 0) {
+        message_log("WTF?", ERR);
+    }
 
     return 0;
 }
 
-size_t generate_bare_response(s_http_response *response, char *bareResponse) {
+s_string generate_bare_header(s_http_response *response) {
     static const char header_OK[] = "HTTP/1.1 200 OK";
     static const char header_NOT_FOUND[] = "HTTP/1.1 404 Not Found";
+    static const char header_INTERNAL_ERROR[] = "HTTP/1.1 500 Internal Server Error";
 
     /*
      * TODO: Add other responses
      */
 
-    if(response->status == OK)
-        sprintf(bareResponse, "%s\r\nContent-Length: %d\r\n\r\n%s", header_OK, (int)response->body_length, response->body);
-    else if(response->status == NOT_FOUND)
-        sprintf(bareResponse, "%s\r\nContent-Length: %d\r\n\r\n%s", header_NOT_FOUND, (int)response->body_length, response->body);
+    s_string result;
 
-    return strlen(bareResponse);
+    result.length = 0;
+    result.position = NULL;
+
+    switch(response->status) {
+        case OK:
+            result.length = (size_t)snprintf(NULL, 0, "%s\r\nContent-Length: %d\r\n\r\n", header_OK, (int)response->body_length);
+            result.position = malloc((size_t)result.length);
+            sprintf(result.position, "%s\r\nContent-Length: %d\r\n\r\n", header_OK, (int)response->body_length);
+            return result;
+        case NOT_FOUND:
+            result.length = (size_t)snprintf(NULL, 0, "%s\r\nContent-Length: %d\r\n\r\n", header_NOT_FOUND, (int)response->body_length);
+            result.position = malloc((size_t)result.length);
+            sprintf(result.position, "%s\r\nContent-Length: %d\r\n\r\n%s", header_NOT_FOUND, (int)response->body_length, response->body);
+            return result;
+        case INTERNAL_ERROR:
+            result.length = (size_t)snprintf(NULL, 0, "%s\r\n\r\n", header_INTERNAL_ERROR);
+            result.position= malloc((size_t)result.length);
+            sprintf(result.position, "%s\r\n\r\n", header_NOT_FOUND);
+            return result;
+    }
+
+    return result;
 }

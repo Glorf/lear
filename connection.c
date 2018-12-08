@@ -98,36 +98,49 @@ int read_client_connection(int cli_socket) {
     }
 
     s_http_response response;
-    if(process_http_request(&request, &response) == -1) { //Main request processing thread
+    if(process_http_request(&request, &response) < 0) { //Main request processing thread
         message_log("Failed to produce response", ERR);
         /*
          * TODO: Should return 500
          */
+
+        return -1;
     }
 
 
-    char *resp = malloc((size_t)read_config_int("maxResponseSize", "8192"));
-    size_t respSize = generate_bare_response(&response, resp);
-    if(respSize == -1) {
+    s_string headerString = generate_bare_header(&response);
+
+    if(headerString.length <= 0) {
         message_log("Failed to serialize server response", ERR);
         /*
          * TODO: Should return 500
          */
-    }
-
-    if(respSize > read_config_int("maxResponseSize", "8192")) {
-        message_log("Requested file is too big", ERR);
-        /*
-         * TODO: Should return 500
-         */
-    }
-
-    /* Write the reply to connection */
-    if(write(cli_socket, resp, respSize) == -1)
-    {
-        message_log("Error while writing to client", WARN);
         return -1;
     }
+
+    /*if(responseString.length > read_config_int("maxResponseSize", "81920000")) {
+        message_log("Requested file is too big", ERR);
+        //TODO: Should return 500
+
+        return -1;
+    }*/
+
+    /* Write message header */
+    if(write(cli_socket, headerString.position, headerString.length) == -1) {
+        message_log("Error while writing header to client", ERR);
+        return -1;
+    }
+
+    /* Write message body */
+    if(response.body_length>0 && write(cli_socket, response.body, response.body_length) == -1)
+    {
+        message_log("Error while writing body to client", WARN);
+        return -1;
+    }
+
+    free(headerString.position);
+    free(response.body); //We generated serialized response so we can free body
+
 
     return 0;
 }

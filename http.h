@@ -1,6 +1,8 @@
 #ifndef PUTHTTPD_HTTP_H
 #define PUTHTTPD_HTTP_H
 
+#include "types.h"
+
 #include <glob.h>
 
 typedef enum {
@@ -31,11 +33,12 @@ typedef struct {
 typedef struct  {
     e_http_status status;
     size_t body_length;
-    char body[8192];
+    char *body;
 } s_http_response;
+
 
 int parse_request_line(char *bareLine, int lineSize, s_http_request *request);
 int process_http_request(s_http_request *request, s_http_response *response);
-size_t generate_bare_response(s_http_response *response, char *bareResponse);
+s_string generate_bare_header(s_http_response *response);
 
 #endif //PUTHTTPD_HTTP_H
