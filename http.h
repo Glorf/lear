@@ -7,7 +7,7 @@ typedef enum {
     OPTIONS,
     GET,
     HEAD,
-    UNKNOWN
+    UNKNOWN,
 } e_http_methods;
 
 typedef enum {
@@ -25,7 +25,7 @@ typedef struct {
     e_http_methods method;
     char hostname[128];
     char parameters[128][64];
-    char resource[128];
+    char *resource;
 } s_http_request;
 
 typedef struct  {

@@ -11,49 +11,39 @@
 int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
     int offset = 0;
     if(request->method == UNKNOWN) { //no data yet, it's first line
-        if(lineSize >3 && bareLine[0] == 'G' && bareLine[1] == 'E' && bareLine[2] == 'T') {
-            request->method = GET;
-            offset+=3;
-        }
-        else if(lineSize > 4 && bareLine[0] == 'H' && bareLine[1] == 'E' && bareLine[2] == 'A' && bareLine[3] == 'D') {
-            request->method = HEAD;
-            offset+=4;
-        }
-        else if(lineSize > 7 && bareLine[0] == 'O' && bareLine[1] == 'P' && bareLine[2] == 'T' && bareLine[3] == 'I' &&
-                bareLine[4] == 'O' && bareLine[5] == 'N' && bareLine[6] == 'S') {
-            request->method = OPTIONS;
-            offset+=7;
-        }
-        else //Unknown, unhandled request, TODO: throw 501
-            return -1;
+        char *type = strtok(bareLine, " ");
+        if(type == NULL) return BAD_REQUEST;
 
-        if(bareLine[offset] == ' ') offset++;
-        else return -1; //omit space and handle resource name, TODO: throw 501
+        if(strcmp(type, "GET") == 0) request->method = GET;
+        else if(strcmp(type, "HEAD") == 0) request->method = HEAD;
+        else if(strcmp(type, "OPTIONS") == 0) request->method = OPTIONS;
+        else return NOT_IMPLEMENTED;
 
-        for(int i = 0; i<lineSize - offset; i++) { //copy resource name
-            if(bareLine[i+offset] == ' ') {
-                request->resource[i] = '\0';
-                offset+=(i+1);
-                break;
-            }
-
-            request->resource[i] = bareLine[i+offset];
+        char *resource = strtok(NULL, " ");
+        if(resource == NULL) {
+            message_log("Error while parsing request header", ERR);
+            return BAD_REQUEST;
         }
+        request->resource = malloc(sizeof(resource));
+        strcpy(request->resource, resource);
 
-        if(lineSize-offset >= 8 && bareLine[offset] == 'H' && bareLine[offset+1] == 'T' && bareLine[offset+2] == 'T' &&
-            bareLine[offset+3] == 'P' && bareLine[offset+4] == '/' && bareLine[offset+5] == '1' &&
-            bareLine[offset+6] == '.' && bareLine[offset+7] == '1') {
+        char *protocol = strtok(NULL, " ");
+        if(protocol == NULL) return BAD_REQUEST;
+        if(strcmp(protocol, "HTTP/1.1") == 0) {
             message_log("Requested resource: ", DEBUG);
             message_log(request->resource, DEBUG);
-            return 0;
+            return OK;
         }
         else {
-            return -1; //TODO: throw unsupported - 505
+            return HTTP_VERSION_NOT_SUPPORTED;
         }
+    }
+    else {
+
     }
 
     /*
-     * TODO: Parse request here
+     * TODO: Parse request headers here
      */
 
     return 0;
@@ -62,12 +52,13 @@ int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
 int process_http_request(s_http_request *request, s_http_response *response) {
 
     const char *webdir = read_config_string("host.webDir", "/var/www");
+    const char *nfdir = read_config_string("host.notFound", "404.html");
 
+    int larger = sizeof(request->resource) > sizeof(nfdir) ? sizeof(request->resource): sizeof(nfdir);
 
     if(request->method == GET) {
         //TODO: handle multiple hostnames
-        char resourceDir[256];
-
+        char *resourceDir = malloc(larger + sizeof(webdir));
         sprintf(resourceDir, "%s%s", webdir, request->resource);
 
         if(is_directory(resourceDir)) { //if it's directory, look for index.html inside
@@ -78,7 +69,7 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 
 
         if(access(resourceDir , F_OK ) == -1) { //File not exist
-            sprintf(resourceDir, "%s/%s", webdir, read_config_string("host.notFound", "404.html"));
+            sprintf(resourceDir, "%s%s", webdir, nfdir);
             response->status = NOT_FOUND;
         }
         else
@@ -97,11 +88,15 @@ int process_http_request(s_http_request *request, s_http_response *response) {
             message_log("Error while reading file", ERR);
             response->status = INTERNAL_ERROR;
         }
+
+        free(resourceDir);
     }
 
     /*
      * TODO: handle other requests
      */
+
+    free(request->resource);
 
     return 0;
 }

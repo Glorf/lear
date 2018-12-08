@@ -20,7 +20,7 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
     int cli_socket = accept(srv_in->srv_socket, NULL, NULL);
     if(cli_socket < 0) {
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
-            message_log("Failed to initialize connection to any new client", INFO);
+            message_log("Failed to initialize connection to any new client", DEBUG);
             return -1;
         }
         else {
@@ -85,8 +85,14 @@ int read_client_connection(int cli_socket) {
                 message_log("Request finished", DEBUG);
                 break;
             }
-            if(parse_request_line(line, linesize-1, &(request)) == -1) { //Parse the finished request line (minus clrf)
-                message_log("Invalid request or unknown request parameter", WARN);
+
+            int status = parse_request_line(line, linesize-1, &(request));  //Parse the finished request line (minus clrf)
+
+            if(status != OK) {
+                /*
+                 * TODO: handle request problems here
+                 */
+                //message_log("Invalid request or unknown request parameter", WARN);
             }
             linesize = 0;
         }
@@ -127,7 +133,10 @@ int read_client_connection(int cli_socket) {
     /* Write message header */
     safe_write(cli_socket, headerString.position, headerString.length);
 
-    free(headerString.position);
+    if(headerString.position == NULL)
+        message_log("Something weird just happened!", WARN);
+    else
+        free(headerString.position);
 
     /* Write message body */
     if(response.body_length>0) safe_write(cli_socket, response.body, response.body_length);
