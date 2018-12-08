@@ -1,8 +1,11 @@
 #include "http.h"
 #include "logger.h"
+#include "config.h"
+#include "cache.h"
 
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
     int offset = 0;
@@ -56,34 +59,47 @@ int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
 }
 
 int process_http_request(s_http_request *request, s_http_response *response) {
+
+    if(request->method == GET) {
+        if(strcmp(request->resource, "/") == 0) strcpy(request->resource, "/index.html"); //TODO: dehardcode index
+
+
+        //TODO: handle multiple hostnames
+        char resourceDir[256];
+        sprintf(resourceDir, "%s%s", read_config_string("host.webDir", "/var/www"), request->resource);
+
+        if(access(resourceDir , F_OK ) == -1) { //File not exist
+            sprintf(resourceDir, "%s%s", read_config_string("host.webDir", "/var/www"), read_config_string("host.notFound", "/404.html"));
+            response->status = NOT_FOUND;
+        }
+        else
+        {
+            response->status = OK;
+        }
+
+        if(read_file(resourceDir, response->body) == -1) {
+            message_log(resourceDir, WARN);
+            message_log("Error while reading file", ERR); //TODO: return 5xx
+        }
+    }
+
     /*
-     * TODO: Process request and generate response here
+     * TODO: handle other requests
      */
 
-    static const char body[] =
-            "<html>\n"
-            "<head>\n"
-            "<title>Test</title>\n"
-            "</head>\n"
-            "<body>\n"
-            "Hello World!\n"
-            "</body>\n"
-            "</html>";
 
-    response->status = OK;
-    strcpy(response->body, body);
-    response->body_length = strlen(body);
+    response->body_length = strlen(response->body);
 
     return 0;
 }
 
 size_t generate_bare_response(s_http_response *response, char *bareResponse) {
-    /*
-     * TODO: Serialize response and return char table here
-     */
     static const char header_OK[] = "HTTP/1.1 200 OK";
     static const char header_NOT_FOUND[] = "HTTP/1.1 404 Not Found";
 
+    /*
+     * TODO: Add other responses
+     */
 
     if(response->status == OK)
         sprintf(bareResponse, "%s\r\nContent-Length: %d\r\n\r\n%s", header_OK, (int)response->body_length, response->body);
