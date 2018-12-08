@@ -57,7 +57,7 @@ int read_client_connection(int cli_socket) {
 
     char line[read_config_int("maxRequestSize", "8192")];
     int linesize = 0;
-    for(int i = 0; i < read_config_int("maxRequestSize", "8192");) {
+    for(; ;) {
         ssize_t count;
         char buf;
 
@@ -94,7 +94,6 @@ int read_client_connection(int cli_socket) {
             line[linesize] = buf;
             linesize++;
         }
-        i++;
     }
 
     s_http_response response;
@@ -126,23 +125,37 @@ int read_client_connection(int cli_socket) {
     }*/
 
     /* Write message header */
-    if(write(cli_socket, headerString.position, headerString.length) == -1) {
-        message_log("Error while writing header to client", ERR);
-        return -1;
-    }
-
-    /* Write message body */
-    if(response.body_length>0 && write(cli_socket, response.body, response.body_length) == -1)
-    {
-        message_log("Error while writing body to client", WARN);
-        return -1;
-    }
+    safe_write(cli_socket, headerString.position, headerString.length);
 
     free(headerString.position);
-    free(response.body); //We generated serialized response so we can free body
 
+    /* Write message body */
+    if(response.body_length>0) safe_write(cli_socket, response.body, response.body_length);
 
     return 0;
+}
+
+void safe_write(int socket, char *data, unsigned long size) {
+    int timeout = read_config_int("requestTimeout", "5");
+    time_t start = time(NULL);
+
+    size_t sent = 0;
+
+    while(sent < size && time(NULL)-start < timeout) {
+        ssize_t s = write(socket, data+sent, size-sent);
+        if(s == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            message_log("Error while writing to client", ERR);
+            return;
+        }
+        else if(s > 0) {
+            sent += s;
+            start = time(NULL);
+        }
+    }
+
+    if(sent < size) {
+        message_log("Write timeout", ERR);
+    }
 }
 
 int close_client_connection(int cli_socket) {

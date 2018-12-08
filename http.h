@@ -1,9 +1,7 @@
 #ifndef PUTHTTPD_HTTP_H
 #define PUTHTTPD_HTTP_H
 
-#include "types.h"
-
-#include <glob.h>
+#include "extras.h"
 
 typedef enum {
     OPTIONS,
@@ -32,7 +30,7 @@ typedef struct {
 
 typedef struct  {
     e_http_status status;
-    size_t body_length;
+    unsigned long body_length;
     char *body;
 } s_http_response;
 

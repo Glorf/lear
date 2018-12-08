@@ -1,10 +1,8 @@
 #ifndef PUTHTTPD_TYPES_H
 #define PUTHTTPD_TYPES_H
 
-#include <glob.h>
-
 typedef struct {
-    size_t length;
+    unsigned long length;
     char *position;
 } s_string;
 
