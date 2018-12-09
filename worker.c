@@ -29,7 +29,7 @@ int create_worker() {
     message_log("I'm working!", DEBUG);
     signal(SIGTERM, &stop_worker);
 
-    unsigned short port = (unsigned short)read_config_int("listenPort", "9000");
+    unsigned short port = (unsigned short)read_config_long("listenPort", "9000");
 
     s_tcp_server server;
     create_server_struct(&server);
@@ -57,11 +57,11 @@ int create_worker() {
 
     struct epoll_event *event_queue;
 
-    int queueSize = read_config_int("queueSize", "64");
+    long queueSize = read_config_long("queueSize", "64");
     event_queue = calloc((size_t)queueSize, sizeof(accept_ev));
 
     while(running) {
-        int n = epoll_wait(epoll_fd, event_queue, queueSize, -1);
+        int n = epoll_wait(epoll_fd, event_queue, (int)queueSize, -1);
         for(int i=0; i<n; i++) {
             if ((event_queue[i].events & EPOLLERR) || (event_queue[i].events & EPOLLHUP)) { //queue error
                 message_log("Unknown epoll error occured in event queue", WARN);

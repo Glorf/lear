@@ -1,4 +1,5 @@
 #include "config.h"
+#include "extras.h"
 
 #include <stdio.h>
 #include <yaml.h>
@@ -11,7 +12,7 @@ struct map {
 
 typedef struct map s_map;
 
-s_map config[10];
+s_map config[20];
 int config_num;
 
 int init_config(char path[]) {
@@ -81,18 +82,23 @@ int init_config(char path[]) {
     return config_num;
 }
 
-char* read_config_string(char key[], char defaults[]) {
-    char *result = defaults;
+s_string read_config_string(char key[], char defaults[]) {
+    s_string result;
+    result.length = 0;
     for(int i=0; i<config_num; i++) {
         if(strcmp(config[i].key, key) == 0) {
-            result = config[i].value;
+            result = create_string(config[i].value, strlen(config[i].value));
             break;
         }
+    }
+
+    if(result.length == 0) {
+        result = create_string(defaults, strlen(defaults));
     }
 
     return result;
 }
 
-int read_config_int(char key[], char defaults[]) {
-    return atoi(read_config_string(key, defaults));
+long read_config_long(char key[], char defaults[]) {
+    return strtol(read_config_string(key, defaults).position, NULL, 10);
 }

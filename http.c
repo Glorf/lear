@@ -23,14 +23,14 @@ int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
             message_log("Error while parsing request header", ERR);
             return BAD_REQUEST;
         }
-        request->resource = malloc(sizeof(resource));
-        strcpy(request->resource, resource);
+
+        request->resource = create_string(resource, strlen(resource));
 
         char *protocol = strtok(NULL, " ");
         if(protocol == NULL) return BAD_REQUEST;
         if(strcmp(protocol, "HTTP/1.1") == 0) {
             message_log("Requested resource: ", DEBUG);
-            message_log(request->resource, DEBUG);
+            message_log(request->resource.position, DEBUG);
             return OK;
         }
         else {
@@ -50,37 +50,31 @@ int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
 
 int process_http_request(s_http_request *request, s_http_response *response) {
 
-    const char *webdir = read_config_string("host.webDir", "/var/www"); //TODO: it may leak?
-    const char *nfdir = read_config_string("host.notFound", "/404.html");
-    const char index[] = "/index.html";
+    s_string webdir = read_config_string("host.webDir", "/var/www");
+    s_string nfdir = read_config_string("host.notFound", "/404.html");
+    s_string index = create_string("/index.html", 11);
 
     if(request->method == GET) {
         //TODO: handle multiple hostnames
 
-        size_t resourceDirSize = (size_t)snprintf(NULL, 0, "%s%s", webdir, request->resource);
-        char *resourceDir = malloc(resourceDirSize+1);
-        snprintf(resourceDir, resourceDirSize+1, "%s%s", webdir, request->resource);
+
+        s_string resourceDir = concat_string(webdir, request->resource);
 
         if(is_directory(resourceDir)) { //if it's directory, look for index.html inside
-            resourceDirSize = (size_t)snprintf(NULL, 0, "%s%s", resourceDir, index);
+            s_string indexDir = concat_string(resourceDir, index);
 
-            char *indexResourceDir = malloc(resourceDirSize+1);
-            snprintf(indexResourceDir, resourceDirSize+1, "%s%s", resourceDir, index);
-            free(resourceDir);
-            resourceDir = indexResourceDir;
+            delete_string(resourceDir);
+
+            resourceDir = indexDir;
         }
 
-        message_log(resourceDir, INFO);
+        if(access(resourceDir.position , F_OK ) == -1) { //File not exist
+            delete_string(resourceDir);
 
-
-        if(access(resourceDir , F_OK ) == -1) { //File not exist
-            free(resourceDir);
-            resourceDirSize = (size_t)snprintf(NULL, 0, "%s%s", webdir, nfdir);
-            resourceDir = malloc(resourceDirSize+1);
-            snprintf(resourceDir, resourceDirSize+1, "%s%s", webdir, nfdir);
+            resourceDir = concat_string(webdir, nfdir);
 
             message_log("Not found!", WARN);
-            message_log(resourceDir, WARN);
+            message_log(resourceDir.position, WARN);
 
             response->status = NOT_FOUND;
         }
@@ -96,19 +90,22 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         response->body_length = (size_t)page.length;
 
         if(response->body_length == -1) {
-            message_log(resourceDir, WARN);
+            message_log(resourceDir.position, WARN);
             message_log("Error while reading file", ERR);
             response->status = INTERNAL_ERROR;
         }
 
-        free(resourceDir);
     }
 
     /*
      * TODO: handle other requests
      */
 
-    free(request->resource);
+
+    delete_string(webdir);
+    delete_string(nfdir);
+    delete_string(index);
+    delete_string(request->resource);
 
     return 0;
 }
@@ -149,7 +146,7 @@ s_string generate_bare_header(s_http_response *response) {
 }
 
 void free_request(s_http_request *request) {
-    free(request->resource);
+    delete_string(request->resource);
 }
 
 void free_response(s_http_response *response) {

@@ -52,10 +52,10 @@ int read_client_connection(int cli_socket) {
     s_http_request request;
     request.method = UNKNOWN;
 
-    int timeout = read_config_int("requestTimeout", "5");
+    long timeout = read_config_long("requestTimeout", "5");
     time_t start = time(NULL);
 
-    char line[read_config_int("maxRequestSize", "8192")];
+    char line[read_config_long("maxRequestSize", "8192")];
     int linesize = 0;
     for(; ;) {
         ssize_t count;
@@ -133,9 +133,9 @@ int read_client_connection(int cli_socket) {
     /* Write message header */
     safe_write(cli_socket, headerString.position, headerString.length);
 
-    //if(headerString.position == NULL)
-      //  message_log("Something weird just happened!", WARN);
-    //else
+    if(headerString.position == NULL)
+        message_log("Something weird just happened!", ERR);
+    else
         free(headerString.position);
 
     /* Write message body */
@@ -145,7 +145,7 @@ int read_client_connection(int cli_socket) {
 }
 
 void safe_write(int socket, char *data, unsigned long size) {
-    int timeout = read_config_int("requestTimeout", "5");
+    long timeout = read_config_long("requestTimeout", "5");
     time_t start = time(NULL);
 
     size_t sent = 0;
@@ -233,7 +233,7 @@ int bind_server_socket(unsigned short port, s_tcp_server *srv_out) {
     make_socket_nonblocking(srv_out->srv_socket);
 
     //Listen on non-blocking socket
-    err = listen(srv_out->srv_socket, read_config_int("queueSize", "5"));
+    err = listen(srv_out->srv_socket, (int)read_config_long("queueSize", "5"));
     if(err < 0) {
         message_log("Error while listening on port", ERR);
         return -1;

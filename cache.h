@@ -3,7 +3,7 @@
 
 #include "extras.h"
 
-s_string read_file(char *filename);
-int is_directory(const char *path);
+s_string read_file(s_string filename);
+int is_directory(s_string path);
 
 #endif //PUTHTTPD_CACHE_H

@@ -13,7 +13,7 @@ struct worker {
 typedef struct worker s_worker;
 
 int run_master() {
-    long nworkers = read_config_int("maxNumWorkers", "1");
+    long nworkers = read_config_long("maxNumWorkers", "1");
     s_worker workers[nworkers];
 
     long numCPU = sysconf(_SC_NPROCESSORS_ONLN); //Only run on max on number of user processors

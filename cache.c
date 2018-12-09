@@ -8,12 +8,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-s_string read_file(char *filename) {
+s_string read_file(s_string filename) {
     s_string filecontent;
     filecontent.length = 0;
     filecontent.position = NULL;
 
-    int fd = open(filename, O_RDONLY);
+    int fd = open(filename.position, O_RDONLY);
 
     if(fd < 0) {
         message_log("Failed to open file", ERR);
@@ -39,9 +39,9 @@ s_string read_file(char *filename) {
     return filecontent;
 }
 
-int is_directory(const char *path) {
+int is_directory(s_string path) {
     struct stat statbuf;
-    if (stat(path, &statbuf) != 0)
+    if (stat(path.position, &statbuf) != 0)
         return 0;
     return S_ISDIR(statbuf.st_mode);
 }

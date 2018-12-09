@@ -5,8 +5,10 @@
 #ifndef PUTHTTPD_CONFIG_H
 #define PUTHTTPD_CONFIG_H
 
+#include "extras.h"
+
 int init_config(char path[]);
-char* read_config_string(char key[], char defaults[]);
-int read_config_int(char key[], char defaults[]);
+s_string read_config_string(char key[], char defaults[]);
+long read_config_long(char key[], char defaults[]);
 
 #endif //PUTHTTPD_CONFIG_H

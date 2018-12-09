@@ -25,7 +25,7 @@ typedef struct {
     e_http_methods method;
     char hostname[128];
     char parameters[128][64];
-    char *resource;
+    s_string resource;
 } s_http_request;
 
 typedef struct  {
