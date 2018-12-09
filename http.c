@@ -83,7 +83,6 @@ int process_http_request(s_http_request *request, s_http_response *response) {
             message_log(resourceDir, WARN);
 
             response->status = NOT_FOUND;
-            return 0;
         }
         else
         {
