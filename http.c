@@ -9,7 +9,6 @@
 #include <stdlib.h>
 
 int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
-    int offset = 0;
     if(request->method == UNKNOWN) { //no data yet, it's first line
         char *type = strtok(bareLine, " ");
         if(type == NULL) return BAD_REQUEST;
@@ -46,31 +45,45 @@ int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
      * TODO: Parse request headers here
      */
 
-    return 0;
+    return OK;
 }
 
 int process_http_request(s_http_request *request, s_http_response *response) {
 
-    const char *webdir = read_config_string("host.webDir", "/var/www");
-    const char *nfdir = read_config_string("host.notFound", "404.html");
-
-    int larger = sizeof(request->resource) > sizeof(nfdir) ? sizeof(request->resource): sizeof(nfdir);
+    const char *webdir = read_config_string("host.webDir", "/var/www"); //TODO: it may leak?
+    const char *nfdir = read_config_string("host.notFound", "/404.html");
+    const char index[] = "/index.html";
 
     if(request->method == GET) {
         //TODO: handle multiple hostnames
-        char *resourceDir = malloc(larger + sizeof(webdir));
-        sprintf(resourceDir, "%s%s", webdir, request->resource);
+
+        size_t resourceDirSize = (size_t)snprintf(NULL, 0, "%s%s", webdir, request->resource);
+        char *resourceDir = malloc(resourceDirSize+1);
+        snprintf(resourceDir, resourceDirSize+1, "%s%s", webdir, request->resource);
 
         if(is_directory(resourceDir)) { //if it's directory, look for index.html inside
-            strcat(resourceDir, "/index.html");
+            resourceDirSize = (size_t)snprintf(NULL, 0, "%s%s", resourceDir, index);
+
+            char *indexResourceDir = malloc(resourceDirSize+1);
+            snprintf(indexResourceDir, resourceDirSize+1, "%s%s", resourceDir, index);
+            free(resourceDir);
+            resourceDir = indexResourceDir;
         }
 
         message_log(resourceDir, INFO);
 
 
         if(access(resourceDir , F_OK ) == -1) { //File not exist
-            sprintf(resourceDir, "%s%s", webdir, nfdir);
+            free(resourceDir);
+            resourceDirSize = (size_t)snprintf(NULL, 0, "%s%s", webdir, nfdir);
+            resourceDir = malloc(resourceDirSize+1);
+            snprintf(resourceDir, resourceDirSize+1, "%s%s", webdir, nfdir);
+
+            message_log("Not found!", WARN);
+            message_log(resourceDir, WARN);
+
             response->status = NOT_FOUND;
+            return 0;
         }
         else
         {
@@ -134,4 +147,12 @@ s_string generate_bare_header(s_http_response *response) {
     }
 
     return result;
+}
+
+void free_request(s_http_request *request) {
+    free(request->resource);
+}
+
+void free_response(s_http_response *response) {
+    //NOTHING YET
 }

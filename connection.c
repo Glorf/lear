@@ -89,9 +89,9 @@ int read_client_connection(int cli_socket) {
             int status = parse_request_line(line, linesize-1, &(request));  //Parse the finished request line (minus clrf)
 
             if(status != OK) {
-                /*
-                 * TODO: handle request problems here
-                 */
+                if(status == BAD_REQUEST) {
+                    message_log("Bad request!!", WARN);
+                }
                 //message_log("Invalid request or unknown request parameter", WARN);
             }
             linesize = 0;
@@ -133,9 +133,9 @@ int read_client_connection(int cli_socket) {
     /* Write message header */
     safe_write(cli_socket, headerString.position, headerString.length);
 
-    if(headerString.position == NULL)
-        message_log("Something weird just happened!", WARN);
-    else
+    //if(headerString.position == NULL)
+      //  message_log("Something weird just happened!", WARN);
+    //else
         free(headerString.position);
 
     /* Write message body */
