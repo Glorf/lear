@@ -133,10 +133,7 @@ int read_client_connection(int cli_socket) {
     /* Write message header */
     safe_write(cli_socket, headerString.position, headerString.length);
 
-    if(headerString.position == NULL)
-        message_log("Something weird just happened!", ERR);
-    else
-        free(headerString.position);
+    delete_string(headerString);
 
     /* Write message body */
     if(response.body_length>0) safe_write(cli_socket, response.body, response.body_length);

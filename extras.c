@@ -1,5 +1,6 @@
 #include "extras.h"
 #include "stdlib.h"
+#include "logger.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +15,10 @@ s_string create_string(char *buf, unsigned long len) {
 }
 
 void delete_string(s_string s) {
-    free(s.position);
+    if(s.position == NULL)
+        message_log("Tried to free null string!", WARN);
+    else
+        free(s.position);
 }
 
 s_string concat_string(s_string s1, s_string s2) {

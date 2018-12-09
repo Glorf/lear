@@ -127,22 +127,21 @@ s_string generate_bare_header(s_http_response *response) {
     switch(response->status) {
         case OK:
             result.length = (size_t)snprintf(NULL, 0, "%s\r\nContent-Length: %lu\r\n\r\n", header_OK, response->body_length);
-            result.position = malloc(result.length);
-            sprintf(result.position, "%s\r\nContent-Length: %lu\r\n\r\n", header_OK, response->body_length);
+            result.position = malloc(result.length+1);
+            snprintf(result.position, result.length+1, "%s\r\nContent-Length: %lu\r\n\r\n", header_OK, response->body_length);
             return result;
         case NOT_FOUND:
             result.length = (size_t)snprintf(NULL, 0, "%s\r\nContent-Length: %lu\r\n\r\n", header_NOT_FOUND, response->body_length);
-            result.position = malloc(result.length);
-            sprintf(result.position, "%s\r\nContent-Length: %lu\r\n\r\n", header_NOT_FOUND, response->body_length);
+            result.position = malloc(result.length+1);
+            snprintf(result.position, result.length+1, "%s\r\nContent-Length: %lu\r\n\r\n", header_NOT_FOUND, response->body_length);
             return result;
         case INTERNAL_ERROR:
+        default:
             result.length = (size_t)snprintf(NULL, 0, "%s\r\n\r\n", header_INTERNAL_ERROR);
-            result.position= malloc(result.length);
-            sprintf(result.position, "%s\r\n\r\n", header_NOT_FOUND);
+            result.position= malloc(result.length+1);
+            snprintf(result.position, result.length+1, "%s\r\n\r\n", header_INTERNAL_ERROR);
             return result;
     }
-
-    return result;
 }
 
 void free_request(s_http_request *request) {
