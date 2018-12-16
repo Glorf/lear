@@ -12,3 +12,4 @@ requestTimeout: 1
 host:
   name: "127.0.0.1"
   webDir: /home/mbien/Projekty/puthttpd/web
+  notFound: "/index.html"

@@ -72,11 +72,13 @@ void clear_string_list(s_string_list *first) {
     for(current = first; first!=NULL && first->next != NULL;) {
         s_string_list *prev = current;
         current = prev->next;
-        delete_string(prev->text);
+        delete_string(prev->key);
+        delete_string(prev->value);
         free(prev);
     }
 
-    delete_string(current->text);
+    delete_string(current->key);
+    delete_string(current->value);
     free(current);
 }
 

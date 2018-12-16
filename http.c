@@ -22,10 +22,9 @@ s_http_request *parse_request(s_string *bareRequest) {
         //attach the stopper
         line.length += 2;
         parse_request_line(&line, request);
-
         //detach the parsed head
-        offset += line.length+2;
-        line.position = line.position+offset;
+        offset += line.length;
+        line.position = bareRequest->position+offset;
         line.length = bareRequest->length - offset;
 
         line = substring(&line, &stopper);
@@ -37,6 +36,7 @@ s_http_request *parse_request(s_string *bareRequest) {
 }
 
 void parse_request_line(s_string *bareLine, s_http_request *request) {
+    s_string header_stopper = create_string(": ", 2);
     s_string stopper = create_string(" ", 1);
     s_string endline = create_string("\r\n", 2);
 
@@ -106,11 +106,36 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
 
         delete_string(http11);
     }
-    else {
+    else { //It's not status line, and we don't support request bodies so parse it as header (TODO: parse request bodies)
+        s_string key = substring(&offset, &header_stopper);
+        offset.position += key.length + 2;
+        offset.length -= (key.length + 2);
+        if(key.length == 0) {
+            request->status = BAD_REQUEST;
+            return;
+        }
 
-        /*
-         * TODO: Parse request headers here
-        */
+        s_string value = substring(&offset, &endline);
+        if(value.length == 0) {
+            request->status = BAD_REQUEST;
+            return;
+        }
+
+        s_string_list *last;
+
+        if(request->headers == NULL) {
+            request->headers = malloc(sizeof(s_string_list));
+            last = request->headers;
+        }
+        else {
+            for (last = request->headers; last != NULL && last->next != NULL; last = last->next); //go to last header
+            request->headers->next = malloc(sizeof(s_string_list));
+            last = request->headers->next;
+        }
+
+        last->next = NULL;
+        last->key = create_string(key.position, key.length);
+        last->value = create_string(value.position, value.length);
     }
 
     delete_string(stopper);
@@ -181,7 +206,10 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 
     }
     else if(request->method == OPTIONS) {
-        response->status = OPTIONS;
+        response->status = OK;
+        /*
+         * TODO: add response headers
+         */
     }
 
     delete_string(webdir);
