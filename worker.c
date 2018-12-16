@@ -75,13 +75,12 @@ int create_worker() {
             if(server.srv_socket == cli_connection->fd) { //incoming connections
                 while(accept_client_connection(&server, epoll_fd) != -1);
             }
-            else { //there is incoming data from one of connected clients
+            else if(event_queue[i].events & EPOLLIN) { //there is incoming data from one of connected clients
                 //return number of new requests added
                 long result = read_client_connection(cli_connection);
                 if(result == 0) { //client disconnected, close connection
                     message_log("Client disconnected", INFO);
-                    free(cli_connection->buffer.payload);
-                    close(cli_connection->fd);
+                    close_client_connection(cli_connection);
                     continue;
                 }
                 else if(result == -1) { //invalid request, return 400
@@ -93,7 +92,14 @@ int create_worker() {
                 if(proc_result <0) {
                     message_log("Error 500", ERR);
                 }
-
+            }
+            else if(event_queue[i].events & EPOLLOUT) { //one of connected clients is ready to read
+                if(cli_connection->response_buffer.size > 0) { //there is some data remaining so let's send it
+                    long result = write_client_connection(cli_connection);
+                    if(result<0) {
+                        message_log("Error while writing to client!", ERR);
+                    }
+                }
             }
         }
     }

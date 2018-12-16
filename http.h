@@ -34,7 +34,6 @@ typedef struct  {
     e_http_status status;
     unsigned long body_length;
     char *body;
-    void *next;
 } s_http_response;
 
 s_http_request *parse_request(s_string *bareRequest);

@@ -22,16 +22,16 @@ typedef struct {
 
 typedef struct {
     int fd;
-    long lastAccess;
-    s_buffer buffer;
+    long lastAccess; //TODO: add timeout
+    s_buffer request_buffer;
     s_http_request *currentRequest;
     int requestQueue;
-    s_http_response *currentResponse;
-    int responseQueue;
+    s_buffer response_buffer;
 } s_connection;
 
 int accept_client_connection(s_tcp_server *srv_in, int epoll_fd);
 long read_client_connection(s_connection *cli_socket);
+long write_client_connection(s_connection *cli_socket);
 int process_client_connection(s_connection *cli_socket);
 int bind_server_socket(unsigned short port, s_tcp_server *srv_out);
 void create_server_struct(s_tcp_server *srv_out);

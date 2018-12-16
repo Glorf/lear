@@ -35,12 +35,12 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
     }
 
     struct epoll_event event;
-    event.events = EPOLLIN | EPOLLET;
+    event.events = EPOLLIN | EPOLLOUT | EPOLLET;
     s_connection *connection = malloc(sizeof(s_connection));
     connection->fd = cli_socket;
 
-    s_buffer buffer = initialize_buffer();
-    connection->buffer = buffer;
+    connection->request_buffer = initialize_buffer();
+    connection->response_buffer = initialize_buffer();
 
     connection->lastAccess = time(NULL);
     connection->currentRequest = NULL;
@@ -66,16 +66,18 @@ long read_client_connection(s_connection* cli_socket) {
     ssize_t sum_transmitted = 0;
     ssize_t count = 0;
     while(count != -1) {
-        if (cli_socket->buffer.size <= cli_socket->buffer.offset + 1) { //No space left
-            if (cli_socket->buffer.size >= max_req) { //request size limit exceeded! BAD REQUEST
+        if (cli_socket->request_buffer.size <= cli_socket->request_buffer.offset + 1) { //No space left
+            if (cli_socket->request_buffer.size >= max_req) { //request size limit exceeded! BAD REQUEST
                 message_log("BAD REQUEST! - is too big", ERR);
                 return -1;
             } else { //limit not exceeded yet, expand buffer
-                expand_buffer(&cli_socket->buffer, max_block);
+                expand_buffer(&cli_socket->request_buffer, max_block);
             }
         }
 
-        count = read(cli_socket->fd, cli_socket->buffer.payload + cli_socket->buffer.offset, cli_socket->buffer.size - cli_socket->buffer.offset);
+        count = read(cli_socket->fd,
+                cli_socket->request_buffer.payload + cli_socket->request_buffer.offset,
+                cli_socket->request_buffer.size - cli_socket->request_buffer.offset);
 
         if (count == -1 && errno != EAGAIN) {
             message_log("Error while reading from client", ERR);
@@ -89,14 +91,14 @@ long read_client_connection(s_connection* cli_socket) {
         }
 
         //Data was read
-        cli_socket->buffer.offset += count;
+        cli_socket->request_buffer.offset += count;
         sum_transmitted += count;
         message_log("Data was read", INFO);
     }
 
     s_string bufferString;
-    bufferString.length = cli_socket->buffer.offset;
-    bufferString.position = cli_socket->buffer.payload;
+    bufferString.length = cli_socket->request_buffer.offset;
+    bufferString.position = cli_socket->request_buffer.payload;
 
     s_string stopper = create_string("\r\n\r\n", 4);
     s_string bareRequest = substring(&bufferString, &stopper);
@@ -116,22 +118,62 @@ long read_client_connection(s_connection* cli_socket) {
 
         offset += bareRequest.length+2;
 
-        bufferString.length = cli_socket->buffer.offset - offset;
-        bufferString.position = cli_socket->buffer.payload + offset;
+        bufferString.length = cli_socket->request_buffer.offset - offset;
+        bufferString.position = cli_socket->request_buffer.payload + offset;
 
         bareRequest = substring(&bufferString, &stopper);
     }
 
 
-    //Copy unused part of buffer
-    cli_socket->buffer.size = cli_socket->buffer.offset - offset; //shrink buffer to as small as possible
-    char *newbuf = malloc(cli_socket->buffer.size);
-    memcpy(newbuf, cli_socket->buffer.payload+offset, cli_socket->buffer.size); //copy existing buffer
-    free(cli_socket->buffer.payload); //free old buffer
-    cli_socket->buffer.payload = newbuf; //reassign
-    cli_socket->buffer.offset = cli_socket->buffer.size;
+    //Copy unused part of buffer that potentially holds beggining of next request
+    cli_socket->request_buffer.size = cli_socket->request_buffer.offset - offset; //shrink buffer to as small as possible
+    char *newbuf = malloc(cli_socket->request_buffer.size);
+    memcpy(newbuf, cli_socket->request_buffer.payload+offset, cli_socket->request_buffer.size); //copy existing buffer
+    free(cli_socket->request_buffer.payload); //free old buffer
+    cli_socket->request_buffer.payload = newbuf; //reassign
+    cli_socket->request_buffer.offset = cli_socket->request_buffer.size;
 
     delete_string(stopper);
+
+    return sum_transmitted;
+}
+
+long write_client_connection(s_connection *cli_socket) {
+    message_log("Response write started", DEBUG);
+
+    ssize_t sum_transmitted = 0;
+    ssize_t count = 0;
+    while(count != -1) {
+        count = write(cli_socket->fd,
+                cli_socket->response_buffer.payload + cli_socket->response_buffer.offset,
+                cli_socket->response_buffer.size - cli_socket->response_buffer.offset);
+
+        if (count == -1 && errno != EAGAIN) {
+            message_log("Error while writing to client", ERR);
+            return -1;
+        } else if(count == -1 && errno == EAGAIN) {
+            message_log("Client cannot accept any more packets, finishing", INFO);
+            break;
+        } else if(count == 0) {
+            message_log("Client disconnected, HANDLE THIS!", WARN);
+            return 0;
+        }
+
+        //Data was written
+        cli_socket->response_buffer.offset += count;
+
+        if(cli_socket->response_buffer.offset == cli_socket->response_buffer.size) {
+            message_log("Buffer is empty, finishing write", INFO);
+            //Free buffer if empty
+            free(cli_socket->response_buffer.payload);
+            cli_socket->response_buffer.size = 0;
+            cli_socket->response_buffer.offset = 0;
+            break;
+        }
+
+        sum_transmitted += count;
+        message_log("Data written", INFO);
+    }
 
     return sum_transmitted;
 }
@@ -144,23 +186,18 @@ int process_client_connection(s_connection *cli_socket){
         s_http_response *response = malloc(sizeof(s_http_response));
         if(process_http_request(cli_socket->currentRequest, response) < 0) { //Main request processing thread
             message_log("Failed to produce response", ERR);
-            /*
-             * TODO: Should return 500
-             */
-
-            return -1;
+            response->status = INTERNAL_ERROR;
         }
 
         cli_socket->currentRequest = request->next; //detach request and free it
         cli_socket->requestQueue--;
         free(request);
 
+        message_log("Request fullfilled", INFO);
+
         s_string headerString = generate_bare_header(response);
         if(headerString.length <= 0) {
             message_log("Failed to serialize server response", ERR);
-            /*
-             * TODO: Should return 500
-             */
             return -1;
         }
 
@@ -173,13 +210,33 @@ int process_client_connection(s_connection *cli_socket){
 
         //TODO: make it non-blocking!!!
 
+        //Reshape buffer to fit the data
+        long offset = cli_socket->response_buffer.size;
+        long payload_size = headerString.length + response->body_length;
+        if(cli_socket->response_buffer.size == 0) cli_socket->response_buffer.payload = malloc((size_t)payload_size);
+        else cli_socket->response_buffer.payload = realloc(cli_socket->response_buffer.payload, cli_socket->response_buffer.size+payload_size);
+        cli_socket->response_buffer.size += payload_size;
+
+        //Copy new data to buffer
+        memcpy(cli_socket->response_buffer.payload+offset,
+                headerString.position, headerString.length);
+        offset += headerString.length;
+        if(response->body_length > 0) {
+            memcpy(cli_socket->response_buffer.payload + offset,
+                   response->body, response->body_length);
+        }
+
+
+        //Try to write instantly
+        write_client_connection(cli_socket);
+
         /* Write message header */
-        safe_write(cli_socket->fd, headerString.position, headerString.length);
+        //safe_write(cli_socket->fd, headerString.position, headerString.length);
 
         delete_string(headerString);
 
         /* Write message body */
-        if(response->body_length>0) safe_write(cli_socket->fd, response->body, response->body_length);
+        //if(response->body_length>0) safe_write(cli_socket->fd, response->body, response->body_length);
     }
 
     return 0;
@@ -215,7 +272,8 @@ int close_client_connection(s_connection *cli_socket) {
         return -1;
     }
 
-    clean_buffer(&cli_socket->buffer);
+    clean_buffer(&cli_socket->request_buffer);
+    clean_buffer(&cli_socket->response_buffer);
 
     return 0;
 }
