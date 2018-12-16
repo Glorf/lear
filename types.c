@@ -67,6 +67,19 @@ char *to_c_string(s_string *str) { //remember to free afterwards!
     return new;
 }
 
+void clear_string_list(s_string_list *first) {
+    s_string_list *current;
+    for(current = first; first!=NULL && first->next != NULL;) {
+        s_string_list *prev = current;
+        current = prev->next;
+        delete_string(prev->text);
+        free(prev);
+    }
+
+    delete_string(current->text);
+    free(current);
+}
+
 s_buffer initialize_buffer() {
     s_buffer buffer;
     buffer.size = 0;

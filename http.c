@@ -12,6 +12,7 @@ s_http_request *parse_request(s_string *bareRequest) {
     s_http_request *request = malloc(sizeof(s_http_request));
     request->method = UNKNOWN;
     request->status = OK;
+    request->headers = NULL;
 
     s_string stopper = create_string("\r\n", 2);
     s_string line = substring(bareRequest, &stopper);
@@ -106,6 +107,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
         delete_string(http11);
     }
     else {
+
         /*
          * TODO: Parse request headers here
         */
@@ -127,9 +129,8 @@ int process_http_request(s_http_request *request, s_http_response *response) {
     }
 
 
-    if(request->method == GET) {
+    if(request->method == GET || request->method == HEAD) {
         //TODO: handle multiple hostnames
-
 
         string_log(&request->resource, INFO);
 
@@ -164,24 +165,24 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         string_log(&resourceDir, DEBUG);
 
 
+        if(request->method == GET) {
+            s_string page = read_file(resourceDir);
+            response->body = page.position;
+            response->body_length = (size_t) page.length;
 
-        s_string page = read_file(resourceDir);
-        response->body = page.position;
-        response->body_length = (size_t)page.length;
-
-        if(response->body_length == -1) {
-            message_log(resourceDir.position, WARN);
-            message_log("Error while reading file", ERR);
-            response->status = INTERNAL_ERROR;
+            if (response->body_length == -1) {
+                message_log(resourceDir.position, WARN);
+                message_log("Error while reading file", ERR);
+                response->status = INTERNAL_ERROR;
+            }
         }
 
         delete_string(resourceDir);
 
     }
-
-    /*
-     * TODO: handle other requests
-     */
+    else if(request->method == OPTIONS) {
+        response->status = OPTIONS;
+    }
 
     delete_string(webdir);
     delete_string(nfdir);
@@ -192,9 +193,16 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 }
 
 s_string generate_bare_header(s_http_response *response) {
-    static const char header_OK[] = "HTTP/1.1 200 OK";
-    static const char header_NOT_FOUND[] = "HTTP/1.1 404 Not Found";
-    static const char header_INTERNAL_ERROR[] = "HTTP/1.1 500 Internal Server Error";
+    static const char protocol[] = "HTTP/1.1"; //TODO: support other HTTP versions
+    static const char header_OK[] = "200 OK";
+    static const char header_BAD_REQUEST[] = "400 Bad Request";
+    static const char header_NOT_FOUND[] = "404 Not Found";
+    static const char header_REQUEST_TIMEOUT[] = "408 Request Timeout";
+    static const char header_REQUEST_TOO_LARGE[] = "413 Request Entity Too Large";
+    static const char header_URI_TOO_LONG[] = "414 Request-URI Too Long";
+    static const char header_INTERNAL_ERROR[] = "500 Internal Server Error";
+    static const char header_NOT_IMPLEMENTED[] = "501 Not Implemented";
+    static const char header_HTTP_VERSION_NOT_SUPPORTED[] = "505 HTTP Version Not Supported";
 
     /*
      * TODO: Add other responses
@@ -207,20 +215,45 @@ s_string generate_bare_header(s_http_response *response) {
 
     switch(response->status) {
         case OK:
-            result.length = (size_t)snprintf(NULL, 0, "%s\r\nContent-Length: %lu\r\n\r\n", header_OK, response->body_length);
-            result.position = malloc(result.length+1);
-            snprintf(result.position, result.length+1, "%s\r\nContent-Length: %lu\r\n\r\n", header_OK, response->body_length);
+            forge_status_line(protocol, header_OK, response->body_length, &result);
+            return result;
+        case BAD_REQUEST:
+            forge_status_line(protocol, header_BAD_REQUEST, response->body_length, &result);
             return result;
         case NOT_FOUND:
-            result.length = (size_t)snprintf(NULL, 0, "%s\r\nContent-Length: %lu\r\n\r\n", header_NOT_FOUND, response->body_length);
-            result.position = malloc(result.length+1);
-            snprintf(result.position, result.length+1, "%s\r\nContent-Length: %lu\r\n\r\n", header_NOT_FOUND, response->body_length);
+            forge_status_line(protocol, header_NOT_FOUND, response->body_length, &result);
+            return result;
+        case REQUEST_TIMEOUT:
+            forge_status_line(protocol, header_REQUEST_TIMEOUT, response->body_length, &result);
+            return result;
+        case REQUEST_TOO_LARGE:
+            forge_status_line(protocol, header_REQUEST_TOO_LARGE, response->body_length, &result);
+            return result;
+        case URI_TOO_LONG:
+            forge_status_line(protocol, header_URI_TOO_LONG, response->body_length, &result);
             return result;
         case INTERNAL_ERROR:
-        default:
-            result.length = (size_t)snprintf(NULL, 0, "%s\r\n\r\n", header_INTERNAL_ERROR);
-            result.position= malloc(result.length+1);
-            snprintf(result.position, result.length+1, "%s\r\n\r\n", header_INTERNAL_ERROR);
+            forge_status_line(protocol, header_INTERNAL_ERROR, response->body_length, &result);
             return result;
+        case NOT_IMPLEMENTED:
+        default:
+            forge_status_line(protocol, header_NOT_IMPLEMENTED, response->body_length, &result);
+            return result;
+        case HTTP_VERSION_NOT_SUPPORTED:
+            forge_status_line(protocol, header_HTTP_VERSION_NOT_SUPPORTED, response->body_length, &result);
+            return result;
+    }
+}
+
+void forge_status_line(const char protocol[], const char header[], unsigned long body_length, s_string *result) {
+    if(body_length > 0) {
+        result->length = (size_t) snprintf(NULL, 0, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
+        result->position = malloc(result->length+1);
+        snprintf(result->position, result->length + 1, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
+    }
+    else {
+        result->length = (size_t)snprintf(NULL, 0, "%s %s\r\n\r\n", protocol, header);
+        result->position= malloc(result->length+1);
+        snprintf(result->position, result->length+1, "%s %s\r\n\r\n", protocol, header);
     }
 }

@@ -14,7 +14,8 @@ typedef enum {
     OK = 200,
     BAD_REQUEST = 400,
     NOT_FOUND = 404,
-    REQUEST_TIMEOUT = 408,
+    REQUEST_TIMEOUT = 408, //TODO: handle it somehow
+    REQUEST_TOO_LARGE = 413,
     URI_TOO_LONG = 414,
     INTERNAL_ERROR = 500,
     NOT_IMPLEMENTED = 501,
@@ -24,7 +25,7 @@ typedef enum {
 typedef struct {
     e_http_methods method;
     s_string hostname;
-    s_string **parameters;
+    s_string_list *headers;
     s_string resource;
     e_http_status status;
     void *next;
@@ -40,5 +41,6 @@ s_http_request *parse_request(s_string *bareRequest);
 void parse_request_line(s_string *bareLine, s_http_request *request);
 int process_http_request(s_http_request *request, s_http_response *response);
 s_string generate_bare_header(s_http_response *response);
+void forge_status_line(const char protocol[], const char header[], unsigned long body_length, s_string *result);
 
 #endif //PUTHTTPD_HTTP_H

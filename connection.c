@@ -184,6 +184,8 @@ int process_client_connection(s_connection *cli_socket){
         s_http_request *request = cli_socket->currentRequest;
 
         s_http_response *response = malloc(sizeof(s_http_response));
+        response->body_length = 0;
+        response->status = OK;
         if(process_http_request(cli_socket->currentRequest, response) < 0) { //Main request processing thread
             message_log("Failed to produce response", ERR);
             response->status = INTERNAL_ERROR;
