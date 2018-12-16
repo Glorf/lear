@@ -22,6 +22,7 @@ s_http_request *parse_request(s_string *bareRequest) {
         //attach the stopper
         line.length += 2;
         parse_request_line(&line, request);
+        if(request->status != OK) break; //request failed anyway, no need to process it
         //detach the parsed head
         offset += line.length;
         line.position = bareRequest->position+offset;
@@ -71,11 +72,17 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
         offset.position += type.length + 1; //move to next part of line
         offset.length -= (type.length + 1);
 
-
         s_string resource = substring(&offset, &stopper);
         if(resource.length == 0) {
             message_log("Error while parsing request header", ERR);
             request->status = BAD_REQUEST;
+            return;
+        }
+
+        long max_uri = read_config_long("maxURILength", "128");
+        if(resource.length > max_uri) {
+            message_log("Requested uri too long!", ERR);
+            request->status = URI_TOO_LONG;
             return;
         }
 
@@ -149,8 +156,10 @@ int process_http_request(s_http_request *request, s_http_response *response) {
     s_string index = create_string("/index.html", 11);
 
     if(request->status != OK) {
-        message_log("REQUEST FAILED! SHOULD RETURN NON-200 RESPONSE!", WARN);
-        return  -1;
+        //Sending error-like, body-less response
+        response->status = request->status;
+        response->body_length = 0;
+        return 0;
     }
 
 
@@ -274,14 +283,7 @@ s_string generate_bare_header(s_http_response *response) {
 }
 
 void forge_status_line(const char protocol[], const char header[], unsigned long body_length, s_string *result) {
-    if(body_length > 0) {
-        result->length = (size_t) snprintf(NULL, 0, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
-        result->position = malloc(result->length+1);
-        snprintf(result->position, result->length + 1, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
-    }
-    else {
-        result->length = (size_t)snprintf(NULL, 0, "%s %s\r\n\r\n", protocol, header);
-        result->position= malloc(result->length+1);
-        snprintf(result->position, result->length+1, "%s %s\r\n\r\n", protocol, header);
-    }
+    result->length = (size_t) snprintf(NULL, 0, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
+    result->position = malloc(result->length+1);
+    snprintf(result->position, result->length + 1, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
 }

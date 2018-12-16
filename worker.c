@@ -89,8 +89,9 @@ int create_worker() {
                 }
 
                 int proc_result = process_client_connection(cli_connection); //process request read
-                if(proc_result <0) {
+                if(proc_result <0 && cli_connection->currentRequest != NULL) {
                     message_log("Error 500", ERR);
+                    cli_connection->currentRequest->status = BAD_REQUEST;
                 }
             }
             else if(event_queue[i].events & EPOLLOUT) { //one of connected clients is ready to read

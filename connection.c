@@ -85,8 +85,7 @@ long read_client_connection(s_connection* cli_socket) {
         } else if(count == -1 && errno == EAGAIN) {
             message_log("Finished this part of request", INFO);
             break;
-        } else if(count == 0) {
-            message_log("Client disconnected, HANDLE THIS!", WARN);
+        } else if(count == 0) { //Client disconnected
             return sum_transmitted;
         }
 
@@ -154,9 +153,8 @@ long write_client_connection(s_connection *cli_socket) {
         } else if(count == -1 && errno == EAGAIN) {
             message_log("Client cannot accept any more packets, finishing", INFO);
             break;
-        } else if(count == 0) {
-            message_log("Client disconnected, HANDLE THIS!", WARN);
-            return 0;
+        } else if(count == 0) { //Client disconnected
+            return sum_transmitted;
         }
 
         //Data was written
@@ -210,8 +208,6 @@ int process_client_connection(s_connection *cli_socket){
             return -1;
         }*/
 
-        //TODO: make it non-blocking!!!
-
         //Reshape buffer to fit the data
         long offset = cli_socket->response_buffer.size;
         long payload_size = headerString.length + response->body_length;
@@ -226,17 +222,10 @@ int process_client_connection(s_connection *cli_socket){
                    response->body, response->body_length);
         }
 
-
-        //Try to write instantly
+        //Try to write instantly - if impossible, leave in buffer
         write_client_connection(cli_socket);
 
-        /* Write message header */
-        //safe_write(cli_socket->fd, headerString.position, headerString.length);
-
         delete_string(headerString);
-
-        /* Write message body */
-        //if(response->body_length>0) safe_write(cli_socket->fd, response->body, response->body_length);
     }
 
     return 0;
