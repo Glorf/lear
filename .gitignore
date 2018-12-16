@@ -1,5 +1,3 @@
 .idea/
 cmake-build-debug/
-web/nmaas
-web/favicon.ico
-web/assets
+web/

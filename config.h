@@ -5,7 +5,7 @@
 #ifndef PUTHTTPD_CONFIG_H
 #define PUTHTTPD_CONFIG_H
 
-#include "extras.h"
+#include "types.h"
 
 int init_config(char path[]);
 s_string read_config_string(char key[], char defaults[]);

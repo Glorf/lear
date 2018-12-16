@@ -13,7 +13,10 @@ s_string read_file(s_string filename) {
     filecontent.length = 0;
     filecontent.position = NULL;
 
-    int fd = open(filename.position, O_RDONLY);
+    char *str_filename = to_c_string(&filename);
+
+    int fd = open(str_filename, O_RDONLY);
+    free(str_filename);
 
     if(fd < 0) {
         message_log("Failed to open file", ERR);
@@ -40,8 +43,13 @@ s_string read_file(s_string filename) {
 }
 
 int is_directory(s_string path) {
+    int res = 0;
+    char *str_path = to_c_string(&path);
     struct stat statbuf;
-    if (stat(path.position, &statbuf) != 0)
+    res = stat(str_path, &statbuf);
+    free(str_path);
+
+    if (res != 0)
         return 0;
     return S_ISDIR(statbuf.st_mode);
 }

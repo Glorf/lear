@@ -48,7 +48,9 @@ int create_worker() {
     }
 
     struct epoll_event accept_ev;
-    accept_ev.data.fd = server.srv_socket;
+    s_connection *srv_connection = malloc(sizeof(s_connection));
+    srv_connection->fd = server.srv_socket;
+    accept_ev.data.ptr = srv_connection;
     accept_ev.events = EPOLLIN | EPOLLET;
     if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server.srv_socket, &accept_ev) < 0) {
         message_log("Failed to add epoll event", ERR);
@@ -65,14 +67,33 @@ int create_worker() {
         for(int i=0; i<n; i++) {
             if ((event_queue[i].events & EPOLLERR) || (event_queue[i].events & EPOLLHUP)) { //queue error
                 message_log("Unknown epoll error occured in event queue", WARN);
-                close_client_connection(event_queue[i].data.fd);
+                close_client_connection(event_queue[i].data.ptr);
                 continue;
             }
-            else if(server.srv_socket == event_queue[i].data.fd) { //incoming connections
+
+            s_connection *cli_connection = event_queue[i].data.ptr;
+            if(server.srv_socket == cli_connection->fd) { //incoming connections
                 while(accept_client_connection(&server, epoll_fd) != -1);
             }
             else { //there is incoming data from one of connected clients
-                read_client_connection(event_queue[i].data.fd);
+                //return number of new requests added
+                long result = read_client_connection(cli_connection);
+                if(result == 0) { //client disconnected, close connection
+                    message_log("Client disconnected", INFO);
+                    free(cli_connection->buffer.payload);
+                    close(cli_connection->fd);
+                    continue;
+                }
+                else if(result == -1) { //invalid request, return 400
+                    message_log("BAD REQUEST!", ERR);
+                    cli_connection->currentRequest->status = BAD_REQUEST;
+                }
+
+                int proc_result = process_client_connection(cli_connection); //process request read
+                if(proc_result <0) {
+                    message_log("Error 500", ERR);
+                }
+
             }
         }
     }

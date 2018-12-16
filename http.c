@@ -8,44 +8,99 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-int parse_request_line(char *bareLine, int lineSize, s_http_request *request) {
+s_http_request *parse_request(s_string *bareRequest) {
+    s_http_request *request = malloc(sizeof(s_http_request));
+    request->method = UNKNOWN;
+    request->status = OK;
+
+    s_string stopper = create_string("\r\n", 2);
+    s_string line = substring(bareRequest, &stopper);
+
+    long offset = 0;
+    while(line.length > 0) {
+        //attach the stopper
+        line.length += 2;
+        parse_request_line(&line, request);
+
+        //detach the parsed head
+        offset += line.length+2;
+        line.position = line.position+offset;
+        line.length = bareRequest->length - offset;
+
+        line = substring(&line, &stopper);
+    }
+
+    delete_string(stopper);
+
+    return request;
+}
+
+void parse_request_line(s_string *bareLine, s_http_request *request) {
+    s_string stopper = create_string(" ", 1);
+    s_string endline = create_string("\r\n", 2);
+    s_string get = create_string("GET", 3);
+    s_string head = create_string("HEAD", 4);
+    s_string options = create_string("OPTIONS", 7);
+    s_string http11 = create_string("HTTP/1.1", 8);
+
+    s_string offset;
+    offset.length = bareLine->length;
+    offset.position = bareLine->position;
     if(request->method == UNKNOWN) { //no data yet, it's first line
-        char *type = strtok(bareLine, " ");
-        if(type == NULL) return BAD_REQUEST;
-
-        if(strcmp(type, "GET") == 0) request->method = GET;
-        else if(strcmp(type, "HEAD") == 0) request->method = HEAD;
-        else if(strcmp(type, "OPTIONS") == 0) request->method = OPTIONS;
-        else return NOT_IMPLEMENTED;
-
-        char *resource = strtok(NULL, " ");
-        if(resource == NULL) {
-            message_log("Error while parsing request header", ERR);
-            return BAD_REQUEST;
+        s_string type = substring(&offset, &stopper);
+        if(type.length == 0) {
+            request->status = BAD_REQUEST;
+            return;
         }
 
-        request->resource = create_string(resource, strlen(resource));
+        if(compare_string(&type, &get)) request->method = GET;
+        else if(compare_string(&type, &head)) request->method = HEAD;
+        else if(compare_string(&type, &options)) request->method = OPTIONS;
+        else {
+            message_log("Request method unsupported", INFO);
+            string_log(&type, INFO);
+            request->status = NOT_IMPLEMENTED;
+            return;
+        }
 
-        char *protocol = strtok(NULL, " ");
-        if(protocol == NULL) return BAD_REQUEST;
-        if(strcmp(protocol, "HTTP/1.1") == 0) {
+        offset.position += type.length + 1; //move to next part of line
+        offset.length -= (type.length + 1);
+
+
+        s_string resource = substring(&offset, &stopper);
+        if(resource.length == 0) {
+            message_log("Error while parsing request header", ERR);
+            request->status = BAD_REQUEST;
+            return;
+        }
+
+        request->resource = create_string(resource.position, resource.length);
+
+        offset.position += resource.length + 1;
+        offset.length -= (resource.length + 1);
+
+        s_string protocol = substring(&offset, &endline);
+        if(protocol.length == 0) {
+            message_log("Bad protocol", DEBUG);
+            request->status = BAD_REQUEST;
+            return;
+        }
+        if(compare_string(&protocol, &http11)) {
             message_log("Requested resource: ", DEBUG);
-            message_log(request->resource.position, DEBUG);
-            return OK;
+            string_log(&request->resource, DEBUG);
+            request->status = OK;
         }
         else {
-            return HTTP_VERSION_NOT_SUPPORTED;
+            message_log("HTTP version unsupported", DEBUG);
+            request->status = HTTP_VERSION_NOT_SUPPORTED;
+            return;
         }
     }
     else {
-
+        /*
+         * TODO: Parse request headers here
+        */
     }
-
-    /*
-     * TODO: Parse request headers here
-     */
-
-    return OK;
 }
 
 int process_http_request(s_http_request *request, s_http_response *response) {
@@ -54,11 +109,20 @@ int process_http_request(s_http_request *request, s_http_response *response) {
     s_string nfdir = read_config_string("host.notFound", "/404.html");
     s_string index = create_string("/index.html", 11);
 
+    if(request->status != OK) {
+        message_log("REQUEST FAILED! SHOULD RETURN NON-200 RESPONSE!", WARN);
+        return  -1;
+    }
+
+
     if(request->method == GET) {
         //TODO: handle multiple hostnames
 
 
+        string_log(&request->resource, INFO);
+
         s_string resourceDir = concat_string(webdir, request->resource);
+
 
         if(is_directory(resourceDir)) { //if it's directory, look for index.html inside
             s_string indexDir = concat_string(resourceDir, index);
@@ -68,13 +132,17 @@ int process_http_request(s_http_request *request, s_http_response *response) {
             resourceDir = indexDir;
         }
 
-        if(access(resourceDir.position , F_OK ) == -1) { //File not exist
+        char *str_resource_dir = to_c_string(&resourceDir);
+        message_log("Trying file:", INFO);
+        message_log(str_resource_dir, INFO);
+        if(access(str_resource_dir , F_OK ) == -1) { //File not exist
+            free(str_resource_dir);
             delete_string(resourceDir);
 
             resourceDir = concat_string(webdir, nfdir);
 
             message_log("Not found!", WARN);
-            message_log(resourceDir.position, WARN);
+            string_log(&resourceDir, WARN);
 
             response->status = NOT_FOUND;
         }
@@ -82,6 +150,8 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         {
             response->status = OK;
         }
+
+        string_log(&resourceDir, DEBUG);
 
 
 
@@ -142,12 +212,4 @@ s_string generate_bare_header(s_http_response *response) {
             snprintf(result.position, result.length+1, "%s\r\n\r\n", header_INTERNAL_ERROR);
             return result;
     }
-}
-
-void free_request(s_http_request *request) {
-    delete_string(request->resource);
-}
-
-void free_response(s_http_response *response) {
-    //NOTHING YET
 }
