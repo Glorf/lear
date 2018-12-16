@@ -213,9 +213,7 @@ int process_client_connection(s_connection *cli_socket){
         //Reshape buffer to fit the data
         long offset = cli_socket->response_buffer.size;
         long payload_size = headerString.length + response->body_length;
-        if(cli_socket->response_buffer.size == 0) cli_socket->response_buffer.payload = malloc((size_t)payload_size);
-        else cli_socket->response_buffer.payload = realloc(cli_socket->response_buffer.payload, cli_socket->response_buffer.size+payload_size);
-        cli_socket->response_buffer.size += payload_size;
+        expand_buffer(&cli_socket->response_buffer, payload_size);
 
         //Copy new data to buffer
         memcpy(cli_socket->response_buffer.payload+offset,
@@ -240,29 +238,6 @@ int process_client_connection(s_connection *cli_socket){
     }
 
     return 0;
-}
-
-void safe_write(int socket, char *data, unsigned long size) {
-    long timeout = read_config_long("requestTimeout", "5");
-    time_t start = time(NULL);
-
-    size_t sent = 0;
-
-    while(sent < size && time(NULL)-start < timeout) {
-        ssize_t s = write(socket, data+sent, size-sent);
-        if(s == -1 && errno != EAGAIN) {
-            message_log("Error while writing to client", ERR);
-            return;
-        }
-        else if(s > 0) {
-            sent += s;
-            start = time(NULL);
-        }
-    }
-
-    if(sent < size) {
-        message_log("Write timeout", ERR);
-    }
 }
 
 int close_client_connection(s_connection *cli_socket) {

@@ -38,10 +38,6 @@ s_http_request *parse_request(s_string *bareRequest) {
 void parse_request_line(s_string *bareLine, s_http_request *request) {
     s_string stopper = create_string(" ", 1);
     s_string endline = create_string("\r\n", 2);
-    s_string get = create_string("GET", 3);
-    s_string head = create_string("HEAD", 4);
-    s_string options = create_string("OPTIONS", 7);
-    s_string http11 = create_string("HTTP/1.1", 8);
 
     s_string offset;
     offset.length = bareLine->length;
@@ -53,6 +49,10 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
+        s_string get = create_string("GET", 3);
+        s_string head = create_string("HEAD", 4);
+        s_string options = create_string("OPTIONS", 7);
+
         if(compare_string(&type, &get)) request->method = GET;
         else if(compare_string(&type, &head)) request->method = HEAD;
         else if(compare_string(&type, &options)) request->method = OPTIONS;
@@ -62,6 +62,10 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             request->status = NOT_IMPLEMENTED;
             return;
         }
+
+        delete_string(get);
+        delete_string(head);
+        delete_string(options);
 
         offset.position += type.length + 1; //move to next part of line
         offset.length -= (type.length + 1);
@@ -85,6 +89,9 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             request->status = BAD_REQUEST;
             return;
         }
+
+        s_string http11 = create_string("HTTP/1.1", 8);
+
         if(compare_string(&protocol, &http11)) {
             message_log("Requested resource: ", DEBUG);
             string_log(&request->resource, DEBUG);
@@ -95,12 +102,17 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             request->status = HTTP_VERSION_NOT_SUPPORTED;
             return;
         }
+
+        delete_string(http11);
     }
     else {
         /*
          * TODO: Parse request headers here
         */
     }
+
+    delete_string(stopper);
+    delete_string(endline);
 }
 
 int process_http_request(s_http_request *request, s_http_response *response) {
@@ -133,10 +145,7 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         }
 
         char *str_resource_dir = to_c_string(&resourceDir);
-        message_log("Trying file:", INFO);
-        message_log(str_resource_dir, INFO);
         if(access(str_resource_dir , F_OK ) == -1) { //File not exist
-            free(str_resource_dir);
             delete_string(resourceDir);
 
             resourceDir = concat_string(webdir, nfdir);
@@ -150,6 +159,7 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         {
             response->status = OK;
         }
+        free(str_resource_dir);
 
         string_log(&resourceDir, DEBUG);
 
@@ -165,12 +175,13 @@ int process_http_request(s_http_request *request, s_http_response *response) {
             response->status = INTERNAL_ERROR;
         }
 
+        delete_string(resourceDir);
+
     }
 
     /*
      * TODO: handle other requests
      */
-
 
     delete_string(webdir);
     delete_string(nfdir);

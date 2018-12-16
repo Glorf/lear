@@ -38,6 +38,5 @@ void create_server_struct(s_tcp_server *srv_out);
 int make_socket_nonblocking(int fd);
 int close_client_connection(s_connection *cli_socket);
 int close_server_socket(s_tcp_server *srv_in);
-void safe_write(int socket, char *data, unsigned long size);
 
 #endif //PUTHTTPD_CONNECTION_H

@@ -79,12 +79,16 @@ int expand_buffer(s_buffer *buffer, long howMuch) {
     buffer->size += howMuch;
     if(buffer->size == howMuch) //Was inexistent
         buffer->payload = malloc((size_t)howMuch);
-    else
-        buffer->payload = realloc(buffer->payload, (size_t)buffer->size);
+    else {
+        char *old = buffer->payload;
+        buffer->payload = malloc((size_t) buffer->size);
+        memcpy(buffer->payload, old, buffer->size - howMuch);
+        free(old);
+    }
     return 0;
 }
 
 void clean_buffer(s_buffer *buffer) {
-    if(buffer->payload != NULL) free(buffer->payload);
+    if(buffer->size > 0) free(buffer->payload);
 }
 
