@@ -27,10 +27,6 @@ s_string read_file(s_string filename) {
     fstat(fd, &s);
     filecontent.length = (size_t)s.st_size;
 
-    if(filecontent.length < 0) {
-        message_log("Error while getting filesize", ERR);
-    }
-
     filecontent.position = mmap(NULL, filecontent.length, PROT_READ, MAP_SHARED, fd, 0);
 
     if(filecontent.position < 0) {
