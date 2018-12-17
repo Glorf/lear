@@ -33,6 +33,9 @@ s_http_request *parse_request(s_string *bareRequest) {
     request->method = UNKNOWN;
     request->status = OK;
     request->headers = NULL;
+    request->next = NULL;
+    request->hostname.position = NULL;
+    request->resource.position = NULL;
 
     s_string line = substring(bareRequest, C_ENDLINE);
 
@@ -140,9 +143,9 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             last = request->headers;
         }
         else {
-            for (last = request->headers; last != NULL && last->next != NULL; last = last->next); //go to last header
-            request->headers->next = malloc(sizeof(s_string_list));
-            last = request->headers->next;
+            for (last = request->headers; last->next != NULL; last = last->next); //go to last header
+            last->next = malloc(sizeof(s_string_list));
+            last = last->next;
         }
 
         last->next = NULL;
@@ -228,7 +231,6 @@ int process_http_request(s_http_request *request, s_http_response *response) {
     delete_string(webdir);
     delete_string(nfdir);
     delete_string(index);
-    delete_string(request->resource);
 
     return 0;
 }
@@ -281,4 +283,11 @@ void forge_status_line(const char protocol[], const char header[], unsigned long
     result->length = (size_t) snprintf(NULL, 0, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
     result->position = malloc(result->length+1);
     snprintf(result->position, result->length + 1, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
+}
+
+void delete_request(s_http_request *request) {
+    clear_string_list(request->headers);
+    delete_string(request->hostname);
+    delete_string(request->resource);
+    free(request);
 }

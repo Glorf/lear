@@ -190,7 +190,7 @@ int process_client_connection(s_connection *cli_socket){
 
         cli_socket->currentRequest = request->next; //detach request and free it
         cli_socket->requestQueue--;
-        free(request);
+        delete_request(request);
 
         message_log("Request fullfilled", INFO);
 
@@ -237,8 +237,16 @@ int close_client_connection(s_connection *cli_socket) {
         return -1;
     }
 
+    for(s_http_request *curr = cli_socket->currentRequest; curr != NULL; ) {
+        s_http_request *prev = curr;
+        curr = prev->next;
+        delete_request(prev);
+    }
+
     clean_buffer(&cli_socket->request_buffer);
     clean_buffer(&cli_socket->response_buffer);
+
+    free(cli_socket);
 
     return 0;
 }

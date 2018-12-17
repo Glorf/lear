@@ -20,6 +20,8 @@ void delete_string(s_string s) {
         message_log("Tried to free null string!", WARN);
     else
         free(s.position);
+
+    s.length = 0;
 }
 
 s_string concat_string(s_string s1, s_string s2) {
@@ -42,7 +44,7 @@ s_string substring(s_string *haystack, const char *needle) { //find index of fir
     if(haystack->length<needle_len) return sub;
 
     for(unsigned long i=0; i<=haystack->length-needle_len; i++) {
-        if(memcmp(haystack->position+i, needle, needle_len) == 0) {
+        if(memcmp(haystack->position+i, needle, (size_t)needle_len) == 0) {
             sub.length = i;
             return sub;
         }
@@ -79,7 +81,7 @@ char *to_c_string(s_string *str) { //remember to free afterwards!
 
 void clear_string_list(s_string_list *first) {
     s_string_list *current;
-    for(current = first; first!=NULL && first->next != NULL;) {
+    for(current = first; current!=NULL; ) {
         s_string_list *prev = current;
         current = prev->next;
         delete_string(prev->key);
@@ -87,9 +89,6 @@ void clear_string_list(s_string_list *first) {
         free(prev);
     }
 
-    delete_string(current->key);
-    delete_string(current->value);
-    free(current);
 }
 
 s_buffer initialize_buffer() {
