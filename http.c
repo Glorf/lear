@@ -280,9 +280,21 @@ s_string generate_bare_header(s_http_response *response) {
 }
 
 void forge_status_line(const char protocol[], const char header[], unsigned long body_length, s_string *result) {
-    result->length = (size_t) snprintf(NULL, 0, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
-    result->position = malloc(result->length+1);
-    snprintf(result->position, result->length + 1, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header, body_length);
+    //TODO: disable this hack and handle keepalive headers properly!
+    if(protocol==C_HTTP_1_1) {
+        result->length = (size_t) snprintf(NULL, 0, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header,
+                                           body_length);
+        result->position = malloc(result->length + 1);
+        snprintf(result->position, result->length + 1, "%s %s\r\nContent-Length: %lu\r\n\r\n", protocol, header,
+                 body_length);
+    }
+    else if(protocol==C_HTTP_1_0) {
+        result->length = (size_t) snprintf(NULL, 0, "%s %s\r\nContent-Length: %lu\r\nConnection: keep-alive\r\n\r\n", protocol, header,
+                                           body_length);
+        result->position = malloc(result->length + 1);
+        snprintf(result->position, result->length + 1, "%s %s\r\nContent-Length: %lu\r\nConnection: keep-alive\r\n\r\n", protocol, header,
+                 body_length);
+    }
 }
 
 void delete_request(s_http_request *request) {
