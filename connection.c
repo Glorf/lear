@@ -221,6 +221,8 @@ int process_client_connection(s_connection *cli_socket){
                    response->body, response->body_length);
         }
 
+        free(response);
+
         //Try to write instantly - if impossible, leave in buffer
         write_client_connection(cli_socket);
 
