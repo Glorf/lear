@@ -22,8 +22,14 @@ typedef enum {
     HTTP_VERSION_NOT_SUPPORTED = 505
 } e_http_status;
 
+typedef enum {
+    V1_0,
+    V1_1
+} e_http_version;
+
 typedef struct {
     e_http_methods method;
+    e_http_version version;
     s_string hostname;
     s_string_list *headers;
     s_string resource;
@@ -33,6 +39,8 @@ typedef struct {
 
 typedef struct  {
     e_http_status status;
+    e_http_version version;
+    s_string_list *headers;
     unsigned long body_length;
     char *body;
 } s_http_response;

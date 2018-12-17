@@ -15,6 +15,19 @@ static const char C_OPTIONS[] = "OPTIONS";
 static const char C_SPACE[] = " ";
 static const char C_HEADER_STOPPER[] = ": ";
 
+static const char C_HTTP_1_0[] = "HTTP/1.0";
+static const char C_HTTP_1_1[] = "HTTP/1.1";
+
+static const char header_OK[] = "200 OK";
+static const char header_BAD_REQUEST[] = "400 Bad Request";
+static const char header_NOT_FOUND[] = "404 Not Found";
+static const char header_REQUEST_TIMEOUT[] = "408 Request Timeout";
+static const char header_REQUEST_TOO_LARGE[] = "413 Request Entity Too Large";
+static const char header_URI_TOO_LONG[] = "414 Request-URI Too Long";
+static const char header_INTERNAL_ERROR[] = "500 Internal Server Error";
+static const char header_NOT_IMPLEMENTED[] = "501 Not Implemented";
+static const char header_HTTP_VERSION_NOT_SUPPORTED[] = "505 HTTP Version Not Supported";
+
 s_http_request *parse_request(s_string *bareRequest) {
     s_http_request *request = malloc(sizeof(s_http_request));
     request->method = UNKNOWN;
@@ -91,20 +104,19 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
-        s_string http11 = create_string("HTTP/1.1", 8);
-
-        if(compare_string(&protocol, &http11)) {
-            message_log("Requested resource: ", DEBUG);
-            string_log(&request->resource, DEBUG);
+        if(compare_string_const(&protocol, C_HTTP_1_1)) {
             request->status = OK;
+            request->version = V1_1;
+        }
+        else if(compare_string_const(&protocol, C_HTTP_1_0)) {
+            request->status = OK;
+            request->version = V1_0;
         }
         else {
             message_log("HTTP version unsupported", DEBUG);
             request->status = HTTP_VERSION_NOT_SUPPORTED;
             return;
         }
-
-        delete_string(http11);
     }
     else { //It's not status line, and we don't support request bodies so parse it as header (TODO: parse request bodies)
         s_string key = substring(&offset, C_HEADER_STOPPER);
@@ -144,6 +156,8 @@ int process_http_request(s_http_request *request, s_http_response *response) {
     s_string webdir = read_config_string("host.webDir", "/var/www");
     s_string nfdir = read_config_string("host.notFound", "/404.html");
     s_string index = create_string("/index.html", 11);
+
+    response->version = request->version;
 
     if(request->status != OK) {
         //Sending error-like, body-less response
@@ -220,25 +234,16 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 }
 
 s_string generate_bare_header(s_http_response *response) {
-    static const char protocol[] = "HTTP/1.1"; //TODO: support other HTTP versions
-    static const char header_OK[] = "200 OK";
-    static const char header_BAD_REQUEST[] = "400 Bad Request";
-    static const char header_NOT_FOUND[] = "404 Not Found";
-    static const char header_REQUEST_TIMEOUT[] = "408 Request Timeout";
-    static const char header_REQUEST_TOO_LARGE[] = "413 Request Entity Too Large";
-    static const char header_URI_TOO_LONG[] = "414 Request-URI Too Long";
-    static const char header_INTERNAL_ERROR[] = "500 Internal Server Error";
-    static const char header_NOT_IMPLEMENTED[] = "501 Not Implemented";
-    static const char header_HTTP_VERSION_NOT_SUPPORTED[] = "505 HTTP Version Not Supported";
-
-    /*
-     * TODO: Add other responses
-     */
-
     s_string result;
 
     result.length = 0;
     result.position = NULL;
+
+    const char *protocol = NULL;
+    if(response->version == V1_0)
+        protocol = C_HTTP_1_0;
+    else if(response->version == V1_1)
+        protocol = C_HTTP_1_1;
 
     switch(response->status) {
         case OK:
