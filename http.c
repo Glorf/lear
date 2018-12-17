@@ -8,14 +8,20 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+static const char C_ENDLINE[] = "\r\n";
+static const char C_GET[] = "GET";
+static const char C_HEAD[] = "HEAD";
+static const char C_OPTIONS[] = "OPTIONS";
+static const char C_SPACE[] = " ";
+static const char C_HEADER_STOPPER[] = ": ";
+
 s_http_request *parse_request(s_string *bareRequest) {
     s_http_request *request = malloc(sizeof(s_http_request));
     request->method = UNKNOWN;
     request->status = OK;
     request->headers = NULL;
 
-    s_string stopper = create_string("\r\n", 2);
-    s_string line = substring(bareRequest, &stopper);
+    s_string line = substring(bareRequest, C_ENDLINE);
 
     long offset = 0;
     while(line.length > 0) {
@@ -28,36 +34,27 @@ s_http_request *parse_request(s_string *bareRequest) {
         line.position = bareRequest->position+offset;
         line.length = bareRequest->length - offset;
 
-        line = substring(&line, &stopper);
+        line = substring(&line, C_ENDLINE);
     }
-
-    delete_string(stopper);
 
     return request;
 }
 
 void parse_request_line(s_string *bareLine, s_http_request *request) {
-    s_string header_stopper = create_string(": ", 2);
-    s_string stopper = create_string(" ", 1);
-    s_string endline = create_string("\r\n", 2);
-
     s_string offset;
     offset.length = bareLine->length;
     offset.position = bareLine->position;
     if(request->method == UNKNOWN) { //no data yet, it's first line
-        s_string type = substring(&offset, &stopper);
+        s_string type = substring(&offset, C_SPACE);
         if(type.length == 0) {
             request->status = BAD_REQUEST;
             return;
         }
 
-        s_string get = create_string("GET", 3);
-        s_string head = create_string("HEAD", 4);
-        s_string options = create_string("OPTIONS", 7);
 
-        if(compare_string(&type, &get)) request->method = GET;
-        else if(compare_string(&type, &head)) request->method = HEAD;
-        else if(compare_string(&type, &options)) request->method = OPTIONS;
+        if(compare_string_const(&type, C_GET)) request->method = GET;
+        else if(compare_string_const(&type, C_HEAD)) request->method = HEAD;
+        else if(compare_string_const(&type, C_OPTIONS)) request->method = OPTIONS;
         else {
             message_log("Request method unsupported", INFO);
             string_log(&type, INFO);
@@ -65,14 +62,10 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
-        delete_string(get);
-        delete_string(head);
-        delete_string(options);
-
         offset.position += type.length + 1; //move to next part of line
         offset.length -= (type.length + 1);
 
-        s_string resource = substring(&offset, &stopper);
+        s_string resource = substring(&offset, C_SPACE);
         if(resource.length == 0) {
             message_log("Error while parsing request header", ERR);
             request->status = BAD_REQUEST;
@@ -91,7 +84,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
         offset.position += resource.length + 1;
         offset.length -= (resource.length + 1);
 
-        s_string protocol = substring(&offset, &endline);
+        s_string protocol = substring(&offset, C_ENDLINE);
         if(protocol.length == 0) {
             message_log("Bad protocol", DEBUG);
             request->status = BAD_REQUEST;
@@ -114,7 +107,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
         delete_string(http11);
     }
     else { //It's not status line, and we don't support request bodies so parse it as header (TODO: parse request bodies)
-        s_string key = substring(&offset, &header_stopper);
+        s_string key = substring(&offset, C_HEADER_STOPPER);
         offset.position += key.length + 2;
         offset.length -= (key.length + 2);
         if(key.length == 0) {
@@ -122,7 +115,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
-        s_string value = substring(&offset, &endline);
+        s_string value = substring(&offset, C_ENDLINE);
         if(value.length == 0) {
             request->status = BAD_REQUEST;
             return;
@@ -144,9 +137,6 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
         last->key = create_string(key.position, key.length);
         last->value = create_string(value.position, value.length);
     }
-
-    delete_string(stopper);
-    delete_string(endline);
 }
 
 int process_http_request(s_http_request *request, s_http_response *response) {

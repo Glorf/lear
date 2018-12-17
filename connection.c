@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <time.h>
 
+const char C_END_REQUEST[] = "\r\n\r\n";
+
 int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
     if(srv_in->status != RUNNING) {
         message_log("Failed to assign connection to server in non-running state", ERR);
@@ -99,8 +101,7 @@ long read_client_connection(s_connection* cli_socket) {
     bufferString.length = cli_socket->request_buffer.offset;
     bufferString.position = cli_socket->request_buffer.payload;
 
-    s_string stopper = create_string("\r\n\r\n", 4);
-    s_string bareRequest = substring(&bufferString, &stopper);
+    s_string bareRequest = substring(&bufferString, C_END_REQUEST);
 
     long offset = 0;
     while (bareRequest.length > 0){
@@ -120,7 +121,7 @@ long read_client_connection(s_connection* cli_socket) {
         bufferString.length = cli_socket->request_buffer.offset - offset;
         bufferString.position = cli_socket->request_buffer.payload + offset;
 
-        bareRequest = substring(&bufferString, &stopper);
+        bareRequest = substring(&bufferString, C_END_REQUEST);
     }
 
 
@@ -131,8 +132,6 @@ long read_client_connection(s_connection* cli_socket) {
     free(cli_socket->request_buffer.payload); //free old buffer
     cli_socket->request_buffer.payload = newbuf; //reassign
     cli_socket->request_buffer.offset = cli_socket->request_buffer.size;
-
-    delete_string(stopper);
 
     return sum_transmitted;
 }

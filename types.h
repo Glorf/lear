@@ -17,8 +17,9 @@ struct s_string_list {
 s_string create_string(char *buf, unsigned long len);
 void delete_string(s_string s);
 s_string concat_string(s_string s1, s_string s2);
-s_string substring(s_string *haystack, s_string *needle);
+s_string substring(s_string *haystack, const char *needle);
 long compare_string(s_string *str1, s_string *str2);
+long compare_string_const(s_string *str, const char *con);
 char *to_c_string(s_string *str);
 void clear_string_list(s_string_list *first);
 

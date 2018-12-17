@@ -33,15 +33,16 @@ s_string concat_string(s_string s1, s_string s2) {
     return s3;
 }
 
-s_string substring(s_string *haystack, s_string *needle) { //find index of first occurence
+s_string substring(s_string *haystack, const char *needle) { //find index of first occurence
     s_string sub;
     sub.length = 0;
     sub.position = haystack->position;
 
-    if(haystack->length<needle->length) return sub;
+    long needle_len = strlen(needle);
+    if(haystack->length<needle_len) return sub;
 
-    for(unsigned long i=0; i<=haystack->length-needle->length; i++) {
-        if(memcmp(haystack->position+i, needle->position, needle->length) == 0) {
+    for(unsigned long i=0; i<=haystack->length-needle_len; i++) {
+        if(memcmp(haystack->position+i, needle, needle_len) == 0) {
             sub.length = i;
             return sub;
         }
@@ -54,6 +55,15 @@ long compare_string(s_string *str1, s_string *str2) { //return 1 if equal, 0 oth
     if(str1->length != str2->length) return 0;
     for(long i = 0; i<str1->length; i++) {
         if(str1->position[i] == str2->position[i]) continue;
+        return 0;
+    }
+    return 1;
+}
+
+long compare_string_const(s_string *str, const char con[]) {
+    if(strlen(con) != str->length) return 0;
+    for(long i = 0; i<str->length; i++) {
+        if(str->position[i] == con[i]) continue;
         return 0;
     }
     return 1;
