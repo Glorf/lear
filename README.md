@@ -33,6 +33,9 @@ as possible.
 - [ ] Implement thread pools for long tasks (see nginx ones)
 - [ ] Make it able to munmap cache unused for long time
 - [ ] Finish socket dropping implementation
+- [ ] Document getting started
+- [ ] Add automated tests
+- [ ] Setup CI (e.g. TravisCI)
 
 ## License
 LEAR is distributed for free as a source code, under permissive MIT license
