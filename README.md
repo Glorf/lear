@@ -19,7 +19,8 @@ rapidly. It features:
 customization (eg. custom 404 error pages for error verbosity and SPA routers)
 * Server parses headers properly and returns Content-Length with any request
 * Requested resources are as stored forever-lasting cache in fast, mmap, shared memory.
-So, LEAR processes sharing same kernel will have fast access to these resources
+So, LEAR processes sharing same kernel will have fast access to these resources without unneeded memory reallocations
+* Custom string format and lack of standard C null-terminated string makes server safer and prone to memory retrieval attacks
 
 ## TODO
 If you like this project, feel free to contribute, fork and send PRs! Current, non-finished
