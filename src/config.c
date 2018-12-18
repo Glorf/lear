@@ -121,4 +121,6 @@ void init_global_config() {
     //populate with defaults
     global_config = malloc(sizeof(s_global_config));
     global_config->max_URI_length = read_config_long("maxURILength", "128");
+    global_config->max_request_size = read_config_long("maxRequestSize", "3072");
+    global_config->max_block_size = read_config_long("requestBlockSize", "512");
 }

@@ -62,18 +62,15 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
 long read_client_connection(s_connection* cli_socket) {
     message_log("Request read started", INFO);
 
-    long max_req = read_config_long("maxRequestSize", "3072");
-    long max_block = read_config_long("requestBlockSize", "512");
-
     ssize_t sum_transmitted = 0;
     ssize_t count = 0;
     while(count != -1) {
         if (cli_socket->request_buffer.size <= cli_socket->request_buffer.offset + 1) { //No space left
-            if (cli_socket->request_buffer.size >= max_req) { //request size limit exceeded! BAD REQUEST
+            if (cli_socket->request_buffer.size >= get_global_config()->max_request_size) { //request size limit exceeded! BAD REQUEST
                 message_log("BAD REQUEST! - is too big", ERR);
                 return -1;
             } else { //limit not exceeded yet, expand buffer
-                expand_buffer(&cli_socket->request_buffer, max_block);
+                expand_buffer(&cli_socket->request_buffer, get_global_config()->max_block_size);
             }
         }
 

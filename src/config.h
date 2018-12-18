@@ -9,6 +9,8 @@
 
 typedef struct {
     long max_URI_length;
+    long max_request_size;
+    long max_block_size;
 } s_global_config;
 
 int init_config(char path[]);

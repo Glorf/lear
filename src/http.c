@@ -8,27 +8,27 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-static const char C_ENDLINE[] = "\r\n";
-static const char C_GET[] = "GET";
-static const char C_HEAD[] = "HEAD";
-static const char C_OPTIONS[] = "OPTIONS";
-static const char C_SPACE[] = " ";
-static const char C_HEADER_STOPPER[] = ": ";
+static const char *C_ENDLINE = "\r\n";
+static const char *C_GET = "GET";
+static const char *C_HEAD = "HEAD";
+static const char *C_OPTIONS = "OPTIONS";
+static const char *C_SPACE = " ";
+static const char *C_HEADER_STOPPER = ": ";
 
-static const char C_HTTP_1_0[] = "HTTP/1.0";
-static const char C_HTTP_1_1[] = "HTTP/1.1";
+static const char *C_HTTP_1_0 = "HTTP/1.0";
+static const char *C_HTTP_1_1 = "HTTP/1.1";
 
-static const char C_INDEX[] = "/index.html";
+static const char *C_INDEX = "/index.html";
 
-static const char header_OK[] = "200 OK";
-static const char header_BAD_REQUEST[] = "400 Bad Request";
-static const char header_NOT_FOUND[] = "404 Not Found";
-static const char header_REQUEST_TIMEOUT[] = "408 Request Timeout";
-static const char header_REQUEST_TOO_LARGE[] = "413 Request Entity Too Large";
-static const char header_URI_TOO_LONG[] = "414 Request-URI Too Long";
-static const char header_INTERNAL_ERROR[] = "500 Internal Server Error";
-static const char header_NOT_IMPLEMENTED[] = "501 Not Implemented";
-static const char header_HTTP_VERSION_NOT_SUPPORTED[] = "505 HTTP Version Not Supported";
+static const char *header_OK = "200 OK";
+static const char *header_BAD_REQUEST = "400 Bad Request";
+static const char *header_NOT_FOUND = "404 Not Found";
+static const char *header_REQUEST_TIMEOUT = "408 Request Timeout";
+static const char *header_REQUEST_TOO_LARGE = "413 Request Entity Too Large";
+static const char *header_URI_TOO_LONG = "414 Request-URI Too Long";
+static const char *header_INTERNAL_ERROR = "500 Internal Server Error";
+static const char *header_NOT_IMPLEMENTED = "501 Not Implemented";
+static const char *header_HTTP_VERSION_NOT_SUPPORTED = "505 HTTP Version Not Supported";
 
 s_http_request *parse_request(s_string *bareRequest) {
     s_http_request *request = malloc(sizeof(s_http_request));

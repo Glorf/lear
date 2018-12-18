@@ -20,6 +20,24 @@ rapidly. It features:
 So, LEAR processes sharing same kernel will have fast access to these resources without unneeded memory reallocations
 * Custom string format and lack of standard C null-terminated string makes server safer and prone to memory retrieval attacks
 
+## Installation
+* Prerequisites: CMake, GCC, libyaml
+* Installation
+
+
+    $ git clone https://github.com/Glorf/lear.git
+    $ cd lear
+    $ cmake .
+    $ make install
+    $ cd bin
+    # now modify httpd.yaml to suit your needs
+    $ ./lear
+    
+## Customization
+httpd.yaml offers you all the options currently available - there are no console switches.
+I believe that at this moment these settings are self-explanatory. We'll do full configs 
+rewrite soon, config documentation is planned to appear afterwards.
+
 ## TODO
 If you like this project, feel free to contribute, fork and send PRs! Current, non-finished
 list of feature requests is available below. Remember to keep straight KISS rule - LEAR is
@@ -33,7 +51,6 @@ as possible.
 - [ ] Implement thread pools for long tasks (see nginx ones)
 - [ ] Make it able to munmap cache unused for long time
 - [ ] Finish socket dropping implementation
-- [ ] Document getting started
 - [ ] Add automated tests
 - [ ] Setup CI (e.g. TravisCI)
 
