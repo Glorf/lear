@@ -25,6 +25,7 @@ So, LEAR processes sharing same kernel will have fast access to these resources 
 * Installation
 
 
+    ```bash
     $ git clone https://github.com/Glorf/lear.git
     $ cd lear
     $ cmake .
