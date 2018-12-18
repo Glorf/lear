@@ -35,6 +35,18 @@ s_string concat_string(s_string s1, s_string s2) {
     return s3;
 }
 
+s_string concat_string_const(s_string str, const char *con) {
+    s_string s3;
+
+    unsigned long len = strlen(con);
+    s3.length = str.length + len;
+    s3.position = malloc(s3.length);
+    memcpy(s3.position, str.position, str.length);
+    memcpy(s3.position+str.length, con, len);
+
+    return s3;
+}
+
 s_string substring(s_string *haystack, const char *needle) { //find index of first occurence
     s_string sub;
     sub.length = 0;

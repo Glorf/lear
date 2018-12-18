@@ -18,6 +18,8 @@ static const char C_HEADER_STOPPER[] = ": ";
 static const char C_HTTP_1_0[] = "HTTP/1.0";
 static const char C_HTTP_1_1[] = "HTTP/1.1";
 
+static const char C_INDEX[] = "/index.html";
+
 static const char header_OK[] = "200 OK";
 static const char header_BAD_REQUEST[] = "400 Bad Request";
 static const char header_NOT_FOUND[] = "404 Not Found";
@@ -88,7 +90,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
-        long max_uri = read_config_long("maxURILength", "128");
+        long max_uri = get_global_config()->max_URI_length;
         if(resource.length > max_uri) {
             message_log("Requested uri too long!", ERR);
             request->status = URI_TOO_LONG;
@@ -158,7 +160,6 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 
     s_string webdir = read_config_string("host.webDir", "/var/www");
     s_string nfdir = read_config_string("host.notFound", "/404.html");
-    s_string index = create_string("/index.html", 11);
 
     response->version = request->version;
 
@@ -179,7 +180,7 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 
 
         if(is_directory(resourceDir)) { //if it's directory, look for index.html inside
-            s_string indexDir = concat_string(resourceDir, index);
+            s_string indexDir = concat_string_const(resourceDir, C_INDEX);
 
             delete_string(resourceDir);
 
@@ -230,7 +231,6 @@ int process_http_request(s_http_request *request, s_http_response *response) {
 
     delete_string(webdir);
     delete_string(nfdir);
-    delete_string(index);
 
     return 0;
 }

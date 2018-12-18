@@ -127,11 +127,18 @@ long read_client_connection(s_connection* cli_socket) {
 
     //Copy unused part of buffer that potentially holds beggining of next request
     cli_socket->request_buffer.size = cli_socket->request_buffer.offset - offset; //shrink buffer to as small as possible
-    char *newbuf = malloc(cli_socket->request_buffer.size);
-    memcpy(newbuf, cli_socket->request_buffer.payload+offset, cli_socket->request_buffer.size); //copy existing buffer
-    free(cli_socket->request_buffer.payload); //free old buffer
-    cli_socket->request_buffer.payload = newbuf; //reassign
-    cli_socket->request_buffer.offset = cli_socket->request_buffer.size;
+    if(cli_socket->request_buffer.size > 0) {
+        char *newbuf = malloc(cli_socket->request_buffer.size);
+        memcpy(newbuf, cli_socket->request_buffer.payload + offset,
+               cli_socket->request_buffer.size); //copy existing buffer
+        free(cli_socket->request_buffer.payload); //free old buffer
+        cli_socket->request_buffer.payload = newbuf; //reassign
+        cli_socket->request_buffer.offset = cli_socket->request_buffer.size;
+    }
+    else {
+        free(cli_socket->request_buffer.payload);
+        cli_socket->request_buffer.offset = 0;
+    }
 
     return sum_transmitted;
 }

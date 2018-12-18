@@ -15,6 +15,8 @@ typedef struct map s_map;
 s_map config[20];
 int config_num;
 
+s_global_config *global_config;
+
 int init_config(char path[]) {
     yaml_parser_t parser;
     yaml_event_t event;
@@ -79,6 +81,8 @@ int init_config(char path[]) {
     yaml_parser_delete(&parser);
     fclose(file);
 
+    init_global_config();
+
     return config_num;
 }
 
@@ -107,4 +111,14 @@ long read_config_long(char key[], char defaults[]) {
     free(strptr);
 
     return ret;
+}
+
+s_global_config *get_global_config() {
+    return global_config;
+}
+
+void init_global_config() {
+    //populate with defaults
+    global_config = malloc(sizeof(s_global_config));
+    global_config->max_URI_length = read_config_long("maxURILength", "128");
 }
