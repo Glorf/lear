@@ -41,7 +41,7 @@ as possible.
 LEAR is distributed for free as a source code, under permissive MIT license
 
 ## Benchmark
-As development is in early stage, this benchmark is just a performance profiling tool for me, and maybe significant information for people who like this project. It will be updated recently when any performance-related changes happen. Logging is currently disabled in LEAR while beanchmarking. Also, please, do not believe these benchmarks. It's just the result of some code run on my laptop, running default, non-tuned nginx, you know. If you'll have any results to share, please, PR to this readme!
+As development is in early stage, this benchmark is just a performance profiling tool for me, and maybe significant information for people who like this project. It will be updated recently when any performance-related changes happen. Logging is currently disabled in LEAR while benchmarking. Also, please, do not believe these benchmarks. It's just the result of some code run on my laptop, running default, non-tuned nginx, you know. If you'll have any results to share, please, PR to this readme!
 
 Concurrent performance for small files (4 threads)
 
