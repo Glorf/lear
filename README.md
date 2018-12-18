@@ -61,26 +61,11 @@ LEAR is distributed for free as a source code, under permissive MIT license
 ## Benchmark
 As development is in early stage, this benchmark is just a performance profiling tool for me, and maybe significant information for people who like this project. It will be updated recently when any performance-related changes happen. Logging is currently disabled in LEAR while benchmarking. Also, please, do not believe these benchmarks. It's just the result of some code run on my laptop, running default, non-tuned nginx, you know. If you'll have any results to share, please, PR to this readme!
 
-Concurrent performance for small files (4 threads)
+#### ApacheBench 2.3 results
 
-ab -k -c 100 -n 100000\
-Nginx 1.15.5: Requests per second: 62269.41\
-LEAR master: Requests per second: 80211.05
-
-Single-threaded performance for small files
-
-ab -k -c 1 -n 100000\
-Nginx 1.15.5: Requests per second: 20922.25\
-LEAR master: Requests per second: 22499.05
-
-Concurrent performance for large files (~2MB) (4 threads)
-
-ab -k -c 100 -n 10000\
-Nginx 1.15.5: Requests per second: 2033.09\
-LEAR master: Requests per second: 809.56
-
-Single-threaded performance for large files (~2MB)
-
-ab -k -c 1 -n 10000\
-Nginx 1.15.5: Requests per second: 1602.04\
-LEAR master: Requests per second: 699.79
+| Method | Keep-alive? | File size [B] | Number of requests | Concurrency level | LEAR master [rps] | NGINX 1.5.15 [rps] |
+|--------|-------------|---------------|--------------------|-------------------|-------------------|--------------------|
+| GET    | Yes         | 865           | 100000             | 100               | **80211.05**      | 62269.41           |
+| GET    | Yes         | 865           | 100000             | 1                 | **22499.05**      | 20922.25           |
+| GET    | Yes         | 2229306       | 10000              | 100               | 809.65            | **2033.09**        |
+| GET    | Yes         | 2229306       | 10000              | 1                 | 699.79            | **1602.04**        |
