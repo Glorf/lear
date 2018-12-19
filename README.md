@@ -1,4 +1,7 @@
 # LEAR - Linux Engine for Asset Retrieval
+
+[![Build Status](https://travis-ci.com/anishkny/lear.svg?branch=master)](https://travis-ci.com/anishkny/lear)
+
 ## Description
 LEAR is a simple HTTP server designed to be as simple and fast as possible to achieve one task:
 serve static resources with amazing efficiency. Currently the project is in its early stage,
@@ -53,7 +56,7 @@ as possible.
 - [ ] Make it able to munmap cache unused for long time
 - [ ] Finish socket dropping implementation
 - [ ] Add automated tests
-- [ ] Setup CI (e.g. TravisCI)
+- [X] Setup CI (e.g. TravisCI)
 
 ## License
 LEAR is distributed for free as a source code, under permissive MIT license
