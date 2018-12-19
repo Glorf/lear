@@ -5,11 +5,11 @@ queueSize: 64
 maxNumWorkers: 5
 listenPort: 9000
 requestBlockSize: 512
-maxRequestSize: 3072
+maxRequestSize: 5192
 maxResponseSize: 819200
 maxURILength: 128
 requestTimeout: 1
 host:
   name: "127.0.0.1"
-  webDir: /home/mbien/Projekty/puthttpd/web
+  webDir: /home/mbien/Projekty/lear/web
   notFound: "/index.html"

@@ -12,7 +12,7 @@ struct map {
 
 typedef struct map s_map;
 
-s_map config[20];
+s_map config[40];
 int config_num;
 
 s_global_config *global_config;
@@ -43,6 +43,9 @@ int init_config(char path[]) {
             break;
         }
         switch(event.type) {
+            case YAML_ALIAS_EVENT:
+            case YAML_SEQUENCE_START_EVENT:
+            case YAML_SEQUENCE_END_EVENT:
             case YAML_STREAM_START_EVENT:
             case YAML_DOCUMENT_START_EVENT:
             case YAML_DOCUMENT_END_EVENT:
