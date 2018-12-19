@@ -56,9 +56,14 @@ s_string substring(s_string *haystack, const char *needle) { //find index of fir
     if(haystack->length<needle_len) return sub;
 
     for(unsigned long i=0; i<=haystack->length-needle_len; i++) {
-        if(memcmp(haystack->position+i, needle, (size_t)needle_len) == 0) {
-            sub.length = i;
-            return sub;
+
+        for(unsigned long j=0; j<needle_len+1; j++) {
+            if(j == needle_len) {
+                sub.length = i;
+                return sub;
+            }
+            if(haystack->position[i+j] == needle[j]) continue;
+            else break;
         }
     }
 
