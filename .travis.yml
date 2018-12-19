@@ -1,0 +1,8 @@
+language: c
+
+dist: xenial  # required for cmake v3.12
+
+script:
+  - cmake .
+  - make install
+  - echo TODO Run tests
