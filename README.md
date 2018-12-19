@@ -56,7 +56,7 @@ as possible.
 - [ ] Make it able to munmap cache unused for long time
 - [ ] Finish socket dropping implementation
 - [ ] Add automated tests
-- [ ] Setup CI (e.g. TravisCI)
+- [X] Setup CI (e.g. TravisCI)
 
 ## License
 LEAR is distributed for free as a source code, under permissive MIT license
