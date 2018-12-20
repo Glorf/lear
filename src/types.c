@@ -15,13 +15,13 @@ s_string create_string(char *buf, unsigned long len) {
     return s;
 }
 
-void delete_string(s_string s) {
-    if(s.position == NULL)
+void delete_string(s_string *s) {
+    if(s->position == NULL)
         message_log("Tried to free null string!", WARN);
     else
-        free(s.position);
+        free(s->position);
 
-    s.length = 0;
+    s->length = 0;
 }
 
 s_string concat_string(s_string s1, s_string s2) {
@@ -101,8 +101,8 @@ void clear_string_list(s_string_list *first) {
     for(current = first; current!=NULL; ) {
         s_string_list *prev = current;
         current = prev->next;
-        delete_string(prev->key);
-        delete_string(prev->value);
+        delete_string(&prev->key);
+        delete_string(&prev->value);
         free(prev);
     }
 
@@ -118,13 +118,22 @@ s_buffer initialize_buffer() {
 
 int expand_buffer(s_buffer *buffer, long howMuch) {
     buffer->size += howMuch;
-    if(buffer->size == howMuch) //Was inexistent
-        buffer->payload = malloc((size_t)howMuch);
-    else {
-        char *old = buffer->payload;
-        buffer->payload = malloc((size_t) buffer->size);
-        memcpy(buffer->payload, old, buffer->size - howMuch);
-        free(old);
+    if(howMuch > 0) { //expand
+        if (buffer->size == howMuch) //Was inexistent
+            buffer->payload = malloc((size_t) howMuch);
+        else {
+            buffer->payload = realloc(buffer->payload, (size_t) buffer->size);
+        }
+    }
+    else { //shrink
+        if(buffer->size <= 0) { //free the empty buffer
+            free(buffer->payload);
+            buffer->size = 0;
+            buffer->offset = 0;
+        }
+        else {
+            buffer->payload = realloc(buffer->payload, buffer->size);
+        }
     }
     return 0;
 }

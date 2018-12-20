@@ -109,7 +109,7 @@ s_string read_config_string(char key[], char defaults[]) {
 long read_config_long(char key[], char defaults[]) {
     s_string str = read_config_string(key, defaults);
     char *strptr = to_c_string(&str);
-    delete_string(str);
+    delete_string(&str);
     long ret = strtol(strptr, NULL, 10);
     free(strptr);
 

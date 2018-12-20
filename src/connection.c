@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
+#include <sys/mman.h>
 
 const char C_END_REQUEST[] = "\r\n\r\n";
 
@@ -85,7 +86,7 @@ long read_client_connection(s_connection* cli_socket) {
             message_log("Finished this part of request", INFO);
             break;
         } else if(count == 0) { //Client disconnected
-            return sum_transmitted;
+            return 0;
         }
 
         //Data was read
@@ -156,53 +157,63 @@ long write_client_connection(s_connection *cli_socket) {
         } else if(count == -1 && errno == EAGAIN) {
             message_log("Client cannot accept any more packets, finishing", INFO);
             break;
-        } else if(count == 0) { //Client disconnected
-            return sum_transmitted;
         }
 
         //Data was written
         cli_socket->response_buffer.offset += count;
+        sum_transmitted += count;
+        message_log("Data written", INFO);
 
-        if(cli_socket->response_buffer.offset == cli_socket->response_buffer.size) {
+
+
+        if(cli_socket->response_buffer.offset >= cli_socket->response_buffer.size) {
             message_log("Buffer is empty, finishing write", INFO);
             //Free buffer if empty
             free(cli_socket->response_buffer.payload);
             cli_socket->response_buffer.size = 0;
             cli_socket->response_buffer.offset = 0;
-            break;
+            return sum_transmitted;
         }
-
-        sum_transmitted += count;
-        message_log("Data written", INFO);
     }
+
+    //Copy part of buffer that was not written yet
+    cli_socket->response_buffer.size =
+            cli_socket->response_buffer.size - cli_socket->response_buffer.offset; //shrink buffer to as small as possible
+    char *newbuf = malloc(cli_socket->response_buffer.size);
+    memcpy(newbuf, cli_socket->response_buffer.payload + cli_socket->response_buffer.offset,
+            cli_socket->response_buffer.size); //copy existing buffer
+    free(cli_socket->response_buffer.payload); //free old buffer
+    cli_socket->response_buffer.payload = newbuf; //reassign
+    cli_socket->response_buffer.offset = 0;
+
 
     return sum_transmitted;
 }
 
 int process_client_connection(s_connection *cli_socket){
     message_log("Response being processed", INFO);
-    while(cli_socket->requestQueue != 0 && cli_socket->currentRequest != NULL) {
+    while(cli_socket->requestQueue > 0 && cli_socket->currentRequest != NULL) {
         s_http_request *request = cli_socket->currentRequest;
 
-        s_http_response *response = malloc(sizeof(s_http_response));
-        response->body_length = 0;
-        response->status = OK;
-        if(process_http_request(cli_socket->currentRequest, response) < 0) { //Main request processing thread
+        s_http_response response;
+        response.body_length = 0;
+        response.status = OK;
+        if(process_http_request(cli_socket->currentRequest, &response) < 0) { //Main request processing thread
             message_log("Failed to produce response", ERR);
-            response->status = INTERNAL_ERROR;
+            response.status = INTERNAL_ERROR;
+        }
+
+        message_log("Request fullfilled", INFO);
+
+        s_string headerString = generate_bare_header(&response);
+        if(headerString.length <= 0) {
+            message_log("Failed to serialize server response", ERR);
+            return -1;
         }
 
         cli_socket->currentRequest = request->next; //detach request and free it
         cli_socket->requestQueue--;
         delete_request(request);
-
-        message_log("Request fullfilled", INFO);
-
-        s_string headerString = generate_bare_header(response);
-        if(headerString.length <= 0) {
-            message_log("Failed to serialize server response", ERR);
-            return -1;
-        }
 
         /*if(responseString.length > read_config_int("maxResponseSize", "81920000")) {
             message_log("Requested file is too big", ERR);
@@ -213,24 +224,25 @@ int process_client_connection(s_connection *cli_socket){
 
         //Reshape buffer to fit the data
         long offset = cli_socket->response_buffer.size;
-        long payload_size = headerString.length + response->body_length;
+        long payload_size = headerString.length + response.body_length;
         expand_buffer(&cli_socket->response_buffer, payload_size);
 
         //Copy new data to buffer
         memcpy(cli_socket->response_buffer.payload+offset,
                 headerString.position, headerString.length);
-        offset += headerString.length;
-        if(response->body_length > 0) {
-            memcpy(cli_socket->response_buffer.payload + offset,
-                   response->body, response->body_length);
-        }
 
-        free(response);
+        if(response.body_length > 0) {
+            offset += headerString.length;
+            memcpy(cli_socket->response_buffer.payload + offset,
+                   response.body, response.body_length);
+
+            munmap(response.body, response.body_length);
+        }
 
         //Try to write instantly - if impossible, leave in buffer
         write_client_connection(cli_socket);
 
-        delete_string(headerString);
+        delete_string(&headerString);
     }
 
     return 0;

@@ -1,7 +1,7 @@
 logging:
   path: "./log"
   level: 7
-queueSize: 64
+queueSize: 128
 maxNumWorkers: 5
 listenPort: 9000
 requestBlockSize: 512

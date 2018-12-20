@@ -15,7 +15,7 @@ struct s_string_list {
 };
 
 s_string create_string(char *buf, unsigned long len);
-void delete_string(s_string s);
+void delete_string(s_string *s);
 s_string concat_string(s_string s1, s_string s2);
 s_string concat_string_const(s_string str, const char *con);
 s_string substring(s_string *haystack, const char *needle);

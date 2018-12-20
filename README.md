@@ -19,9 +19,8 @@ rapidly. It features:
 * Its non-blocking nature and concurrence-by-design makes responses incredibly fast and processing very efficient
 * Server implements the most common response status codes and offers response body customization (eg. custom 404 error pages for error verbosity and SPA routers)
 * Server parses headers properly and returns Content-Length with any request
-* Requested resources are stored as forever-lasting cache in fast, mmap, shared memory.
-So, LEAR processes sharing same kernel will have fast access to these resources without unneeded memory reallocations
-* Custom string format and lack of standard C null-terminated string makes server safer and prone to memory retrieval attacks
+* Requested resources are mmapes, so LEAR have fast direct access to them
+* Custom string format and lack of standard C null-terminated string makes server safe from memory retrieval attacks
 
 ## Installation
 * Prerequisites: CMake, GCC, libyaml
@@ -52,9 +51,8 @@ as possible.
 - [ ] Add TLS (OpenSSL, possible to disable at compile-time)
 - [ ] Implement gzip response packaging
 - [ ] Support HTTP/2.0 requests
-- [ ] Implement thread pools for long tasks (see nginx ones)
-- [ ] Make it able to munmap cache unused for long time
-- [ ] Finish socket dropping implementation
+- [ ] Introduce files caches and native linux async AIO
+- [ ] Finish stale connection dropping implementation
 - [ ] Add automated tests
 
 ## License
@@ -67,7 +65,7 @@ As development is in early stage, this benchmark is just a performance profiling
 
 | Method | Keep-alive? | File size [B] | Number of requests | Concurrency level | LEAR master [rps] | NGINX 1.5.15 [rps] |
 |--------|-------------|---------------|--------------------|-------------------|-------------------|--------------------|
-| GET    | Yes         | 865           | 100000             | 100               | **69554.60**      | 47859.80           |
-| GET    | Yes         | 865           | 100000             | 1                 | **19610.20**      | 16483.20           |
+| GET    | Yes         | 865           | 1000000            | 100               | **76765.80**      | 61647.40           |
+| GET    | Yes         | 865           | 1000000            | 1                 | **22709.33**      | 18716.30           |
 | GET    | Yes         | 2229306       | 10000              | 100               | 760.80            | **1821.60**        |
 | GET    | Yes         | 2229306       | 10000              | 1                 | 781.60            | **1508.20**        |

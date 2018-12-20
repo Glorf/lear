@@ -182,14 +182,14 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         if(is_directory(resourceDir)) { //if it's directory, look for index.html inside
             s_string indexDir = concat_string_const(resourceDir, C_INDEX);
 
-            delete_string(resourceDir);
+            delete_string(&resourceDir);
 
             resourceDir = indexDir;
         }
 
         char *str_resource_dir = to_c_string(&resourceDir);
         if(access(str_resource_dir , F_OK ) == -1) { //File not exist
-            delete_string(resourceDir);
+            delete_string(&resourceDir);
 
             resourceDir = concat_string(webdir, nfdir);
 
@@ -219,7 +219,7 @@ int process_http_request(s_http_request *request, s_http_response *response) {
             }
         }
 
-        delete_string(resourceDir);
+        delete_string(&resourceDir);
 
     }
     else if(request->method == OPTIONS) {
@@ -229,8 +229,8 @@ int process_http_request(s_http_request *request, s_http_response *response) {
          */
     }
 
-    delete_string(webdir);
-    delete_string(nfdir);
+    delete_string(&webdir);
+    delete_string(&nfdir);
 
     return 0;
 }
@@ -299,7 +299,7 @@ void forge_status_line(const char protocol[], const char header[], unsigned long
 
 void delete_request(s_http_request *request) {
     clear_string_list(request->headers);
-    delete_string(request->hostname);
-    delete_string(request->resource);
+    delete_string(&request->hostname);
+    delete_string(&request->resource);
     free(request);
 }
