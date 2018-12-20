@@ -41,25 +41,30 @@ httpd.yaml offers you all the options currently available - there are no console
 I believe that at this moment these settings are self-explanatory. We'll do full configs 
 rewrite soon, config documentation is planned to appear afterwards.
 
-## TODO
-If you like this project, feel free to contribute, fork and send PRs! Current, non-finished
-list of feature requests is available below. Remember to keep straight KISS rule - LEAR is
-never going to be RFC-complete as it's designed just to serve GET responses as fast
-as possible.
-
-- [ ] Finish OPTIONS implementation
-- [ ] Add TLS (OpenSSL, possible to disable at compile-time)
-- [ ] Implement gzip response packaging
-- [ ] Support HTTP/2.0 requests
-- [ ] Introduce files caches and native linux async AIO
-- [ ] Finish stale connection dropping implementation
-- [ ] Add automated tests
-
-## License
-LEAR is distributed for free as a source code, under permissive MIT license
+## FAQ
+#### Why is LEAR faster than nginx/apache...
+Because LEAR is small and simple. LEAR does one task - serve static pages - and does it well.
+It also implements only small subset of HTTP protocol, which make it incomplete in sense 
+of being standard-compilant, but also very fast in sense of real life use.
+#### You said it's fast but actually it's slow on big files
+LEAR caching support is WIP. When it'll be ready, we hope it'll outperform most common
+HTTP engines
+#### Why is X unsupported?
+Because LEAR started in october 2018 - so it's quite young project isn't it? If you like C,
+please help us in development by accomplishing some task from Gtihub Issues page. If you
+prefer not to - just be patient.
+#### Should I use it in my production environment?
+**No.** In it's current status, LEAR is extremely incomplete, even for simplest deployments.
+ It's security was also not yet checked by any means. Please, keep us in mind and return
+ in few months - we're sure LEAR will be your next production server then.
 
 ## Benchmark
-As development is in early stage, this benchmark is just a performance profiling tool for me, and maybe significant information for people who like this project. It will be updated recently when any performance-related changes happen. Logging is currently disabled in LEAR while benchmarking. Also, please, do not believe these benchmarks. It's just the result of some code run on my laptop, running default, non-tuned nginx, you know. If you'll have any results to share, please, PR to this readme!
+As development is in early stage, this benchmark is just a performance profiling tool 
+for me, and maybe significant information for people who like this project. It will 
+be updated recently when any performance-related changes happen. Logging is currently 
+disabled in LEAR while benchmarking. Also, please, do not believe these benchmarks. 
+It's just the result of some code run on my laptop, running default, non-tuned nginx, 
+you know. If you'll have any results to share, please, PR to this readme!
 
 #### ApacheBench 2.3 results
 
@@ -69,3 +74,15 @@ As development is in early stage, this benchmark is just a performance profiling
 | GET    | Yes         | 865           | 1000000            | 1                 | **22709.33**      | 18716.30           |
 | GET    | Yes         | 2229306       | 10000              | 100               | 760.80            | **1821.60**        |
 | GET    | Yes         | 2229306       | 10000              | 1                 | 781.60            | **1508.20**        |
+
+## TODO
+If you like this project, feel free to contribute, fork and send PRs! Current, non-finished
+list of feature requests is available on Github Issues page. Remember to keep straight KISS rule - LEAR is
+never going to be RFC-complete as it's designed just to serve GET responses as fast
+as possible.
+
+Please, add issue if you find any bugs or consider any feature that fits the spirit of
+this project
+
+## License
+LEAR is distributed for free as a source code, under permissive MIT license
