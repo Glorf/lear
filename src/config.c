@@ -61,7 +61,6 @@ int init_config(char path[]) {
                     strcat(config[config_num].key, key);
                     strcpy(config[config_num].value, (char *) (event.data.scalar.value));
                     state = KEY;
-                    printf("%s: %s\n", config[config_num].key, config[config_num].value);
                     config_num++;
                 }
                 break;

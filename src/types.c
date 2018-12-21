@@ -97,8 +97,8 @@ char *to_c_string(s_string *str) { //remember to free afterwards!
 }
 
 void clear_string_list(s_string_list *first) {
-    s_string_list *current;
-    for(current = first; current!=NULL; ) {
+
+    for(s_string_list *current = first; current!=NULL; ) {
         s_string_list *prev = current;
         current = prev->next;
         delete_string(&prev->key);
@@ -140,5 +140,8 @@ int expand_buffer(s_buffer *buffer, long howMuch) {
 
 void clean_buffer(s_buffer *buffer) {
     if(buffer->size > 0) free(buffer->payload);
+    else {
+        message_log("Tried to free empty buffer!", WARN);
+    }
 }
 

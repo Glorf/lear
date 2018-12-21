@@ -31,7 +31,8 @@ typedef struct {
     e_http_methods method;
     e_http_version version;
     s_string hostname;
-    s_string_list *headers;
+    s_string_list *headers_first;
+    s_string_list *headers_last; //we have both pointers so that we won't have to iterate while parsing
     s_string resource;
     e_http_status status;
     void *next;

@@ -11,9 +11,8 @@ enum LogLevel {
 };
 
 
-int init_logger(s_string logfile, enum LogLevel logVerbosity);
+int init_logger(enum LogLevel logVerbosity);
 void message_log(char message[], enum LogLevel level);
 void string_log(s_string *message, enum LogLevel level);
-int shutdown_logger();
 
 #endif //PUTHTTPD_LOGGER_H

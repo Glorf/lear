@@ -34,7 +34,8 @@ s_http_request *parse_request(s_string *bareRequest) {
     s_http_request *request = malloc(sizeof(s_http_request));
     request->method = UNKNOWN;
     request->status = OK;
-    request->headers = NULL;
+    request->headers_first = NULL;
+    request->headers_last = NULL;
     request->next = NULL;
     request->hostname.position = NULL;
     request->resource.position = NULL;
@@ -138,21 +139,19 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
-        s_string_list *last;
 
-        if(request->headers == NULL) {
-            request->headers = malloc(sizeof(s_string_list));
-            last = request->headers;
+        if(request->headers_first == NULL) {
+            request->headers_first = malloc(sizeof(s_string_list));
+            request->headers_last = request->headers_first;
         }
         else {
-            for (last = request->headers; last->next != NULL; last = last->next); //go to last header
-            last->next = malloc(sizeof(s_string_list));
-            last = last->next;
+            request->headers_last->next = malloc(sizeof(s_string_list));
+            request->headers_last = request->headers_last->next;
         }
 
-        last->next = NULL;
-        last->key = create_string(key.position, key.length);
-        last->value = create_string(value.position, value.length);
+        request->headers_last->next = NULL;
+        request->headers_last->key = create_string(key.position, key.length);
+        request->headers_last->value = create_string(value.position, value.length);
     }
 }
 
@@ -298,7 +297,7 @@ void forge_status_line(const char protocol[], const char header[], unsigned long
 }
 
 void delete_request(s_http_request *request) {
-    clear_string_list(request->headers);
+    clear_string_list(request->headers_first);
     delete_string(&request->hostname);
     delete_string(&request->resource);
     free(request);
