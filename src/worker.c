@@ -20,6 +20,10 @@ int create_worker() {
 
     if(pid > 0)
         return pid;
+    else if(pid < 0) {
+        message_log("Unable to create new worker! Exiting...", ERR);
+        return -1;
+    }
 
     /*
      * child zone below

@@ -22,7 +22,12 @@ int run_master() {
     //Create workers
     for(long i=0; i<nworkers; i++) {
         workers[i].pid = create_worker();
-        message_log("Created new worker", DEBUG);
+        if(workers[i].pid > 0)
+            message_log("Created new worker", DEBUG);
+        else {
+            message_log("There was an error during worker creation, aborting...", ERR);
+            break;
+        }
     }
 
     //Shutdown master on any interrupt signal
