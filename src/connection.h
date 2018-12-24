@@ -22,7 +22,7 @@ typedef struct {
 
 typedef struct {
     int fd;
-    long lastAccess; //TODO: add timeout
+    long drop_timeout; //time when timeout should be triggered
     s_buffer request_buffer;
     s_http_request *currentRequest;
     int requestQueue;

@@ -125,4 +125,10 @@ void init_global_config() {
     global_config->max_URI_length = read_config_long("maxURILength", "128");
     global_config->max_request_size = read_config_long("maxRequestSize", "3072");
     global_config->max_block_size = read_config_long("requestBlockSize", "512");
+    global_config->request_timeout_sec = read_config_long("requestTimeout", "30");
+
+    //TODO: Move this to dynamic hosts map
+    global_config->host.name = read_config_string("host.name", "localhost");
+    global_config->host.root_path = read_config_string("host.webDir", "/home/mbien/Projekty/lear/web");
+    global_config->host.not_found_path = read_config_string("host.notFound", "/404.html");
 }

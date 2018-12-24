@@ -7,7 +7,7 @@ requestBlockSize: 512
 maxRequestSize: 5192
 maxResponseSize: 819200
 maxURILength: 128
-requestTimeout: 1
+requestTimeout: 30
 host:
   name: "127.0.0.1"
   webDir: /home/mbien/Projekty/lear/web

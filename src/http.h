@@ -41,7 +41,8 @@ typedef struct {
 typedef struct  {
     e_http_status status;
     e_http_version version;
-    s_string_list *headers;
+    s_string_list *headers_first;
+    s_string_list *headers_last; //we have both pointers so that we won't have to iterate while parsing
     unsigned long body_length;
     char *body;
 } s_http_response;
@@ -50,7 +51,7 @@ s_http_request *parse_request(s_string *bareRequest);
 void parse_request_line(s_string *bareLine, s_http_request *request);
 int process_http_request(s_http_request *request, s_http_response *response);
 s_string generate_bare_header(s_http_response *response);
-void forge_status_line(const char protocol[], const char header[], unsigned long body_length, s_string *result);
+void forge_status_line(const char protocol[], const char status[], s_string_list *headers, s_string *result);
 void delete_request(s_http_request *request);
 
 #endif //PUTHTTPD_HTTP_H

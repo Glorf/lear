@@ -45,7 +45,6 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
     connection->request_buffer = initialize_buffer();
     connection->response_buffer = initialize_buffer();
 
-    connection->lastAccess = time(NULL);
     connection->currentRequest = NULL;
     connection->requestQueue = 0;
 
@@ -93,6 +92,7 @@ long read_client_connection(s_connection* cli_socket) {
         cli_socket->request_buffer.offset += count;
         sum_transmitted += count;
         message_log("Data was read", INFO);
+
     }
 
     s_string bufferString;
@@ -198,6 +198,9 @@ int process_client_connection(s_connection *cli_socket){
         s_http_response response;
         response.body_length = 0;
         response.status = OK;
+        response.headers_last = NULL;
+        response.headers_first = NULL;
+
         if(process_http_request(cli_socket->currentRequest, &response) < 0) { //Main request processing thread
             message_log("Failed to produce response", ERR);
             response.status = INTERNAL_ERROR;
@@ -210,10 +213,6 @@ int process_client_connection(s_connection *cli_socket){
             message_log("Failed to serialize server response", ERR);
             return -1;
         }
-
-        cli_socket->currentRequest = request->next; //detach request and free it
-        cli_socket->requestQueue--;
-        delete_request(request);
 
         /*if(responseString.length > read_config_int("maxResponseSize", "81920000")) {
             message_log("Requested file is too big", ERR);
@@ -239,10 +238,16 @@ int process_client_connection(s_connection *cli_socket){
             munmap(response.body, response.body_length);
         }
 
+        cli_socket->currentRequest = request->next; //detach request and free it
+        cli_socket->requestQueue--;
+        delete_request(request);
+
         //Try to write instantly - if impossible, leave in buffer
         write_client_connection(cli_socket);
 
         delete_string(&headerString);
+
+        clear_string_list(response.headers_first);
     }
 
     return 0;
