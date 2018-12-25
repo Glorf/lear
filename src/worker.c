@@ -102,7 +102,8 @@ int create_worker() {
                 if(cli_connection->response_buffer.size > 0) { //there is some data remaining so let's send it
                     long result = write_client_connection(cli_connection);
                     if(result<0) {
-                        message_log("Error while writing to client!", ERR);
+                        message_log("Closing connection to client", INFO);
+                        close_client_connection(cli_connection);
                     }
                 }
             }

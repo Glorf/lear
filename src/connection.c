@@ -151,12 +151,18 @@ long write_client_connection(s_connection *cli_socket) {
                 cli_socket->response_buffer.payload + cli_socket->response_buffer.offset,
                 cli_socket->response_buffer.size - cli_socket->response_buffer.offset);
 
-        if (count == -1 && errno != EAGAIN) {
-            message_log("Error while writing to client", ERR);
-            return -1;
-        } else if(count == -1 && errno == EAGAIN) {
-            message_log("Client cannot accept any more packets, finishing", INFO);
-            break;
+        if (count == -1) {
+            switch(errno) {
+                case EAGAIN:
+                    message_log("Client cannot accept any more packets, finishing", INFO);
+                    break;
+                case ECONNRESET:
+                    message_log("Client aborted connection", INFO);
+                    return -1;
+                default:
+                    message_log("Error while writing to client", ERR);
+                    return -1;
+            }
         }
 
         //Data was written
@@ -230,7 +236,7 @@ int process_client_connection(s_connection *cli_socket){
         memcpy(cli_socket->response_buffer.payload+offset,
                 headerString.position, headerString.length);
 
-        if(response.body_length > 0) {
+        if(request->method == GET && response.body_length > 0) {
             offset += headerString.length;
             memcpy(cli_socket->response_buffer.payload + offset,
                    response.body, response.body_length);

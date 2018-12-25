@@ -145,7 +145,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
-
+        //TODO: delegate duplicate to function
         if(request->headers_first == NULL) {
             request->headers_first = malloc(sizeof(s_string_list));
             request->headers_last = request->headers_first;
@@ -222,17 +222,16 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         string_log(&resource_dir, DEBUG);
 
 
-        if (request->method == GET) {
-            s_string page = read_file(resource_dir);
-            response->body = page.position;
-            response->body_length = (size_t) page.length;
+        s_string page = read_file(resource_dir);
+        response->body = page.position;
+        response->body_length = (size_t) page.length;
 
-            if (response->body_length == -1) {
-                message_log(resource_dir.position, WARN);
-                message_log("Error while reading file", ERR);
-                response->status = INTERNAL_ERROR;
-            }
+        if (response->body_length == -1) {
+            message_log(resource_dir.position, WARN);
+            message_log("Error while reading file", ERR);
+            response->status = INTERNAL_ERROR;
         }
+
         delete_string(&resource_dir);
     }
 
