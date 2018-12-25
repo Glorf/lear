@@ -172,24 +172,10 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         return 0;
     }
 
-    if(request->method == OPTIONS && compare_string_const(&request->resource, "*")) { //Global options query, return default
-        //TODO: duplicate!
-        if(response->headers_first == NULL) {
-            response->headers_first = malloc(sizeof(s_string_list));
-            response->headers_last = response->headers_first;
-        }
-        else {
-            response->headers_last->next = malloc(sizeof(s_string_list));
-            response->headers_last = response->headers_last->next;
-        }
-
-        response->headers_last->key = create_string("Allow", 14);
-        response->headers_last->value = create_string("GET, HEAD, OPTIONS", 18);
-        string_log(&response->headers_last->key, DEBUG);
-    }
+    if(request->method == OPTIONS && compare_string_const(&request->resource, "*")) //it's not a file but OPTIONS query
+        response->status = OK;
     else {
         string_log(&request->resource, INFO);
-
 
         //TODO: Read it from map & add multiple hosts
 
@@ -222,9 +208,11 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         string_log(&resource_dir, DEBUG);
 
 
-        s_string page = read_file(resource_dir);
-        response->body = page.position;
-        response->body_length = (size_t) page.length;
+        if(request->method == GET || request->method == HEAD) { //we don't have to retrieve resource for OPTIONS
+            s_string page = read_file(resource_dir);
+            response->body = page.position;
+            response->body_length = (size_t) page.length;
+        }
 
         if (response->body_length == -1) {
             message_log(resource_dir.position, WARN);
@@ -258,7 +246,8 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         header = header->next;
     }
 
-    //if(response->body_length > 0) { //Message has body - we should transmit its length
+    if(request->method == OPTIONS && (response->status==OK || compare_string_const(&request->resource, "*"))) { //Global options query, return default
+        //TODO: duplicate!
         if(response->headers_first == NULL) {
             response->headers_first = malloc(sizeof(s_string_list));
             response->headers_last = response->headers_first;
@@ -268,14 +257,28 @@ int process_http_request(s_http_request *request, s_http_response *response) {
             response->headers_last = response->headers_last->next;
         }
 
-        response->headers_last->key = create_string("Content-Length", 14);
-        char number[11]; //to surely fit long
-        sprintf(number, "%lu", response->body_length);
-        response->headers_last->value = create_string(number, strlen(number));
-        response->headers_last->next = NULL;
-        message_log("ContentLength added", DEBUG);
+        response->headers_last->key = create_string("Allow", 14);
+        response->headers_last->value = create_string("GET, HEAD, OPTIONS", 18);
         string_log(&response->headers_last->key, DEBUG);
-    //} //TODO: check if it's ok to send contentlength always
+    }
+
+    //Message has body - we should transmit its length
+    if(response->headers_first == NULL) {
+        response->headers_first = malloc(sizeof(s_string_list));
+        response->headers_last = response->headers_first;
+    }
+    else {
+        response->headers_last->next = malloc(sizeof(s_string_list));
+        response->headers_last = response->headers_last->next;
+    }
+
+    response->headers_last->key = create_string("Content-Length", 14);
+    char number[11]; //to surely fit long
+    sprintf(number, "%lu", response->body_length);
+    response->headers_last->value = create_string(number, strlen(number));
+    response->headers_last->next = NULL;
+    message_log("ContentLength added", DEBUG);
+    string_log(&response->headers_last->key, DEBUG);
 
     return 0;
 }
