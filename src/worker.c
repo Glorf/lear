@@ -8,6 +8,8 @@
 #include <wait.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
+#include <time.h>
+
 
 int running;
 
@@ -29,6 +31,10 @@ int create_worker() {
      * child zone below
      */
 
+    //Connection linked list for timeouts
+    latest = NULL;
+    oldest = NULL;
+
     running = 1;
     message_log("I'm working!", DEBUG);
     signal(SIGTERM, &stop_worker);
@@ -38,9 +44,7 @@ int create_worker() {
     s_tcp_server server;
     create_server_struct(&server);
 
-    int epoll_fd;
-
-    epoll_fd = epoll_create1(0);
+    int epoll_fd = epoll_create1(0);
     if(epoll_fd < 0) {
         message_log("Failed to create epoll fd. Worker crashed", ERR);
         exit(-1);
@@ -68,6 +72,7 @@ int create_worker() {
 
     while(running) {
         int n = epoll_wait(epoll_fd, event_queue, (int)queueSize, -1);
+        //Connection handling logic
         for(int i=0; i<n; i++) {
             if ((event_queue[i].events & EPOLLERR) || (event_queue[i].events & EPOLLHUP)) { //queue error
                 message_log("Unknown epoll error occured in event queue", WARN);
@@ -78,12 +83,14 @@ int create_worker() {
             s_connection *cli_connection = event_queue[i].data.ptr;
             if(server.srv_socket == cli_connection->fd) { //incoming connections
                 while(accept_client_connection(&server, epoll_fd) != -1);
+                continue;
             }
             else if(event_queue[i].events & EPOLLIN) { //there is incoming data from one of connected clients
                 //return number of new requests added
                 long result = read_client_connection(cli_connection);
                 if(result == 0) { //client disconnected, close connection
                     message_log("Client disconnected", INFO);
+                    //close connection
                     close_client_connection(cli_connection);
                     continue;
                 }
@@ -93,7 +100,7 @@ int create_worker() {
                 }
 
                 int proc_result = process_client_connection(cli_connection); //process request read
-                if(proc_result <0 && cli_connection->currentRequest != NULL) {
+                if(proc_result < 0 && cli_connection->currentRequest != NULL) {
                     message_log("Error 500", ERR);
                     cli_connection->currentRequest->status = BAD_REQUEST;
                 }
@@ -103,10 +110,30 @@ int create_worker() {
                     long result = write_client_connection(cli_connection);
                     if(result<0) {
                         message_log("Closing connection to client", INFO);
+                        //close connection
                         close_client_connection(cli_connection);
+                        continue;
                     }
                 }
             }
+
+            //Update connection drop timers after request was fullfiled
+            cli_connection->drop_timeout = time(NULL) + get_global_config()->request_timeout_sec;
+            if(cli_connection != latest) {
+                //detach connection from the middle of list
+                detach_client_connection(cli_connection);
+                //add connection on top of the linked list
+                cli_connection->prev = latest;
+                if (latest != NULL)
+                    latest->next = cli_connection;
+                latest = cli_connection;
+            }
+        }
+
+        //Stale connection dropping logic
+        while(oldest != NULL && oldest->drop_timeout < time(NULL)) {
+            message_log("Request timeout", INFO);
+            if(close_client_connection(oldest) < 0) break;
         }
     }
 

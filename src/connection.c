@@ -2,6 +2,7 @@
 #include "config.h"
 #include "logger.h"
 #include "http.h"
+#include "worker.h"
 
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -47,6 +48,16 @@ int accept_client_connection(s_tcp_server *srv_in, int epoll_fd) {
 
     connection->currentRequest = NULL;
     connection->requestQueue = 0;
+
+    connection->next = NULL;
+
+    connection->drop_timeout = time(NULL) + get_global_config()->request_timeout_sec;
+    connection->prev = latest;
+    if(latest != NULL)
+        latest->next = connection;
+    latest = connection;
+    if(oldest == NULL)
+        oldest = connection;
 
     event.data.ptr = connection;
 
@@ -266,6 +277,8 @@ int close_client_connection(s_connection *cli_socket) {
         return -1;
     }
 
+    detach_client_connection(cli_socket);
+
     for(s_http_request *curr = cli_socket->currentRequest; curr != NULL; ) {
         s_http_request *prev = curr;
         curr = prev->next;
@@ -278,6 +291,25 @@ int close_client_connection(s_connection *cli_socket) {
     free(cli_socket);
 
     return 0;
+}
+
+void detach_client_connection(s_connection *cli_socket) {
+    if(cli_socket == latest || cli_socket == oldest) {
+        if (cli_socket == latest) {
+            latest = cli_socket->prev;
+            if (latest != NULL)
+                latest->next = NULL;
+        }
+        if (cli_socket == oldest) {
+            oldest = cli_socket->next;
+            if (oldest != NULL)
+                oldest->prev = NULL;
+        }
+    }
+    else {
+        cli_socket->next->prev = cli_socket->prev;
+        cli_socket->prev->next = cli_socket->next;
+    }
 }
 
 void create_server_struct(s_tcp_server *srv_out) {
