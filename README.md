@@ -10,16 +10,16 @@ but is gaining momentum and features.
 While being small and lightweight, LEAR is as concurrent and non-blocking as possible.
 It also uses state-of-the-art technologies and solutions to achieve its task: serve your assets
 rapidly. It features:
-* Multiprocess architecture of traffic handler, using Linux's >3.9 SO_REUSEPORT
+* Multiprocess architecture of traffic handler, using Linux >3.9's `SO_REUSEPORT`
 * Epoll queue for each worker
 * Fully non-blocking architecture of network IO with dynamically allocated read and write buffers
 * Lots of customization through user-friendly YAML properties file
 ## Features
-* LEAR accomplishes its task by implementing GET, HEAD, and OPTIONS methods of HTTP/1.1 
+* LEAR accomplishes its task by implementing GET, HEAD, and OPTIONS methods of HTTP/1.1
 * Its non-blocking nature and concurrence-by-design makes responses incredibly fast and processing very efficient
 * Server implements the most common response status codes and offers response body customization (eg. custom 404 error pages for error verbosity and SPA routers)
 * Server parses headers properly and returns Content-Length with any request
-* Requested resources are mmapes, so LEAR have fast direct access to them
+* Requested resources are mmapes, so LEAR has fast direct access to them
 * Custom string format and lack of standard C null-terminated string makes server safe from memory retrieval attacks
 
 ## Installation
@@ -35,36 +35,37 @@ rapidly. It features:
     $ cd bin
     # now modify httpd.yaml to suit your needs
     $ ./lear
-    
+
 ## Customization
 httpd.yaml offers you all the options currently available - there are no console switches.
-I believe that at this moment these settings are self-explanatory. We'll do full configs 
+I believe that at this moment these settings are self-explanatory. We'll do full configs
 rewrite soon, config documentation is planned to appear afterwards.
 
 ## FAQ
 #### Why is LEAR faster than nginx/apache...
 Because LEAR is small and simple. LEAR does one task - serve static pages - and does it well.
-It also implements only small subset of HTTP protocol, which make it incomplete in sense 
-of being standard-compilant, but also very fast in sense of real life use.
+It also implements only a small subset of the HTTP, which makes it incomplete in the sense
+of being standard-compilant, but also very fast in the sense of real life use.
 #### You said it's fast but actually it's slow on big files
-LEAR caching support is WIP. When it'll be ready, we hope it'll outperform most common
+LEAR caching support is WIP. When it's ready, we hope it'll outperform most common
 HTTP engines
 #### Why is X unsupported?
-Because LEAR started in october 2018 - so it's quite young project isn't it? If you like C,
-please help us in development by accomplishing some task from Gtihub Issues page. If you
-prefer not to - just be patient.
+Because LEAR started in October 2018 - so it's quite a young project isn't it? If you like C,
+please help us in development by accomplishing some task from the
+[Github Issues page](https://github.com/Glorf/lear/issues). If you prefer not to
+- just be patient.
 #### Should I use it in my production environment?
-**No.** In it's current status, LEAR is extremely incomplete, even for simplest deployments.
- It's security was also not yet checked by any means. Please, keep us in mind and return
+**No.** In its current status, LEAR is extremely incomplete, even for simplest deployments.
+ Its security has also not yet been checked by any means. Please, keep us in mind and return
  in few months - we're sure LEAR will be your next production server then.
 
 ## Benchmark
-As development is in early stage, this benchmark is just a performance profiling tool 
-for me, and maybe significant information for people who like this project. It will 
-be updated recently when any performance-related changes happen. Logging is currently 
-disabled in LEAR while benchmarking. Also, please, do not believe these benchmarks. 
-It's just the result of some code run on my laptop, running default, non-tuned nginx, 
-you know. If you'll have any results to share, please, PR to this readme!
+As development is in early stage, this benchmark is just a performance profiling tool
+for me, and maybe significant information for people who like this project. It will
+be updated recently when any performance-related changes happen. Logging is currently
+disabled in LEAR while benchmarking. Also, please, do not believe these benchmarks.
+It's just the result of some code run on my laptop, running default, non-tuned nginx,
+you know. If you have any results to share, please, submit a PR to this readme!
 
 #### ApacheBench 2.3 results
 
@@ -81,8 +82,8 @@ list of feature requests is available on Github Issues page. Remember to keep st
 never going to be RFC-complete as it's designed just to serve GET responses as fast
 as possible.
 
-Please, add issue if you find any bugs or consider any feature that fits the spirit of
-this project
+Please, open an issue if you find any bugs or consider any feature that fits the spirit of
+this project.
 
 ## License
-LEAR is distributed for free as a source code, under permissive MIT license
+LEAR is distributed for free as a source code, under the permissive MIT license.
