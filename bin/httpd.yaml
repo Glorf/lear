@@ -11,4 +11,4 @@ requestTimeout: 30
 host:
   name: "127.0.0.1"
   webDir: /home/mbien/Projekty/lear/web
-  notFound: "/index.html"
+  notFound: "/a"

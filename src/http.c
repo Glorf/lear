@@ -15,8 +15,7 @@ static const char *C_OPTIONS = "OPTIONS";
 static const char *C_SPACE = " ";
 static const char *C_HEADER_STOPPER = ":";
 
-static const char *C_HTTP_1_0 = "HTTP/1.0";
-static const char *C_HTTP_1_1 = "HTTP/1.1";
+static const char *C_HTTP[2] = {"HTTP/1.0", "HTTP/1.1"};
 
 static const char *C_INDEX = "/index.html";
 
@@ -43,7 +42,7 @@ s_http_request *parse_request(s_string *bareRequest) {
     s_string line = substring(bareRequest, C_ENDLINE);
 
     long offset = 0;
-    while(line.length > 0) {
+    while(line.position != NULL) {
         //attach the stopper
         line.length += 2;
         parse_request_line(&line, request);
@@ -65,7 +64,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
     offset.position = bareLine->position;
     if(request->method == UNKNOWN) { //no data yet, it's first line
         s_string type = substring(&offset, C_SPACE);
-        if(type.length == 0) {
+        if(type.position == NULL) {
             request->status = BAD_REQUEST;
             return;
         }
@@ -85,7 +84,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
         offset.length -= (type.length + 1);
 
         s_string resource = substring(&offset, C_SPACE);
-        if(resource.length == 0) {
+        if(resource.position == NULL) {
             message_log("Error while parsing request header", ERR);
             request->status = BAD_REQUEST;
             return;
@@ -98,37 +97,78 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
             return;
         }
 
+        //resource path traversal security check
+        //TODO: Perform full path traversal security check!!
         request->resource = create_string(resource.position, resource.length);
+        if(request->resource.length == 0) {
+            request->status = BAD_REQUEST;
+            return;
+        }
+        else {
+            unsigned long tmp_offset = 0;
+            s_string tmp_str = substring(&resource, "/");
+            while(tmp_str.position != NULL) {
+
+                if(tmp_str.length == 2 && compare_string_const(&tmp_str, "..")) { //path traversal!
+                    message_log("Possible path traversal!", WARN);
+                    request->status = BAD_REQUEST;
+                    break;
+                }
+                else if(tmp_str.length == 1 && compare_string_const(&tmp_str, ".")) { //suspicious current directory access?
+                    message_log("Possible path traversal!", WARN);
+                    request->status = BAD_REQUEST;
+                    break;
+                }
+
+                tmp_offset += tmp_str.length + 1;
+
+                tmp_str.position = resource.position + tmp_offset;
+                tmp_str.length = resource.length - tmp_offset;
+
+                tmp_str = substring(&tmp_str, "/");
+            }
+            if(tmp_str.length > 0) { //there are no more slashes, but some characters were not verified yet
+                tmp_str.position = resource.position + tmp_offset;
+
+                //TODO: Duplicate path traversal detection! Treat it in one method somehow
+                if(tmp_str.length == 2 && compare_string_const(&tmp_str, "..")) { //path traversal!
+                    message_log("Possible path traversal!", WARN);
+                    request->status = BAD_REQUEST;
+                }
+                else if(tmp_str.length == 1 && compare_string_const(&tmp_str, ".")) { //suspicious current directory access?
+                    message_log("Possible path traversal!", WARN);
+                    request->status = BAD_REQUEST;
+                }
+            }
+        }
+
 
         offset.position += resource.length + 1;
         offset.length -= (resource.length + 1);
 
         s_string protocol = substring(&offset, C_ENDLINE);
-        if(protocol.length == 0) {
+        if(protocol.position == NULL) {
             message_log("Bad protocol", DEBUG);
             request->status = BAD_REQUEST;
             return;
         }
 
-        if(compare_string_const(&protocol, C_HTTP_1_1)) {
-            request->status = OK;
+        if(compare_string_const(&protocol, C_HTTP[1])) {
             request->version = V1_1;
         }
-        else if(compare_string_const(&protocol, C_HTTP_1_0)) {
-            request->status = OK;
+        else if(compare_string_const(&protocol, C_HTTP[0])) {
             request->version = V1_0;
         }
         else {
             message_log("HTTP version unsupported", DEBUG);
             request->status = HTTP_VERSION_NOT_SUPPORTED;
-            return;
         }
     }
-    else {
+    else { //headers parsing
         s_string key = substring(&offset, C_HEADER_STOPPER);
         offset.position += key.length + 1;
         offset.length -= (key.length + 1);
-        if (key.length == 0) {
+        if (key.position == NULL) {
             request->status = BAD_REQUEST;
             return;
         }
@@ -140,7 +180,7 @@ void parse_request_line(s_string *bareLine, s_http_request *request) {
         }
 
         s_string value = substring(&offset, C_ENDLINE);
-        if (value.length == 0) {
+        if (value.position == NULL) {
             request->status = BAD_REQUEST;
             return;
         }
@@ -169,10 +209,8 @@ int process_http_request(s_http_request *request, s_http_response *response) {
         //Sending error-like, body-less response
         response->status = request->status;
         response->body_length = 0;
-        return 0;
     }
-
-    if(request->method == OPTIONS && compare_string_const(&request->resource, "*")) //it's not a file but OPTIONS query
+    else if(request->method == OPTIONS && compare_string_const(&request->resource, "*")) //it's not a file but OPTIONS query
         response->status = OK;
     else {
         string_log(&request->resource, INFO);
@@ -289,11 +327,7 @@ s_string generate_bare_header(s_http_response *response) {
     result.length = 0;
     result.position = NULL;
 
-    const char *protocol = NULL;
-    if(response->version == V1_0)
-        protocol = C_HTTP_1_0;
-    else if(response->version == V1_1)
-        protocol = C_HTTP_1_1;
+    const char *protocol = C_HTTP[response->version];
 
     switch(response->status) {
         case OK:

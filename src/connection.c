@@ -113,7 +113,7 @@ long read_client_connection(s_connection* cli_socket) {
     s_string bareRequest = substring(&bufferString, C_END_REQUEST);
 
     long offset = 0;
-    while (bareRequest.length > 0){
+    while (bareRequest.position != NULL){
         bareRequest.length += 2; //let's save first \r\n for header parsing purposes
         s_http_request *request = parse_request(&bareRequest);
 

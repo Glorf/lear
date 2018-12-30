@@ -23,8 +23,8 @@ typedef enum {
 } e_http_status;
 
 typedef enum {
-    V1_0,
-    V1_1
+    V1_0 = 0,
+    V1_1 = 1
 } e_http_version;
 
 typedef struct {

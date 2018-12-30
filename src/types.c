@@ -47,10 +47,10 @@ s_string concat_string_const(s_string str, const char *con) {
     return s3;
 }
 
-s_string substring(s_string *haystack, const char *needle) { //find index of first occurence
+s_string substring(s_string *haystack, const char *needle) { //find index of first occurence, NULL if not found
     s_string sub;
     sub.length = 0;
-    sub.position = haystack->position;
+    sub.position = NULL;
 
     long needle_len = strlen(needle);
     if(haystack->length<needle_len) return sub;
@@ -60,6 +60,7 @@ s_string substring(s_string *haystack, const char *needle) { //find index of fir
         for(unsigned long j=0; j<needle_len+1; j++) {
             if(j == needle_len) {
                 sub.length = i;
+                sub.position = haystack->position;
                 return sub;
             }
             if(haystack->position[i+j] == needle[j]) continue;
@@ -67,6 +68,7 @@ s_string substring(s_string *haystack, const char *needle) { //find index of fir
         }
     }
 
+    sub.length = haystack->length;
     return sub;
 }
 
