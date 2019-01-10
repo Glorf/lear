@@ -177,9 +177,11 @@ long write_client_connection(s_connection *cli_socket) {
         }
 
         //Data was written
-        cli_socket->response_buffer.offset += count;
-        sum_transmitted += count;
-        message_log("Data written", INFO);
+        if(count > 0) {
+            cli_socket->response_buffer.offset += count;
+            sum_transmitted += count;
+            message_log("Data written", INFO);
+        }
 
 
 
